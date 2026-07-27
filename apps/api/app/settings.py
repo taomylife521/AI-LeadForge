@@ -20,18 +20,26 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _detect_root() -> Path:
-    """推断仓库根目录（兼容 Docker / 本地）。"""
+    """推断仓库根目录（兼容 Docker / 本地 / Vercel）。"""
 
     candidates = [
         Path("/app"),
         Path(__file__).resolve().parents[3],
         Path.cwd(),
+        Path(os.getenv("VERCEL_PROJECT_PATH") or ""),
+        Path(__file__).resolve().parents[4] if len(Path(__file__).resolve().parents) > 4 else Path.cwd(),
     ]
     for candidate in candidates:
-        if (candidate / "config").exists() or (candidate / "docker-compose.yml").exists():
-            return candidate
-        if (candidate / "model_profiles").exists():
-            return candidate.parent if candidate.name == "config" else candidate
+        if not candidate or str(candidate) in (".", ""):
+            continue
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            continue
+        if (resolved / "config").exists() or (resolved / "docker-compose.yml").exists():
+            return resolved
+        if (resolved / "model_profiles").exists():
+            return resolved.parent if resolved.name == "config" else resolved
     return Path(__file__).resolve().parents[3]
 
 
@@ -100,10 +108,16 @@ def data_dir() -> Path:
     """可写数据目录。"""
 
     settings = get_settings()
-    path = Path(settings.leadforge_data_dir)
+    raw = (settings.leadforge_data_dir or "").strip()
+    # Vercel / 无持久盘：优先显式路径，否则 /tmp
+    if os.getenv("VERCEL") or os.getenv("VERCEL_ENV"):
+        path = Path(raw) if raw and raw != "/data" else Path("/tmp/leadforge-data")
+    else:
+        path = Path(raw) if raw else Path("/data")
     if not path.exists():
         # 本地开发回退
-        path = repo_root() / "data"
+        fallback = repo_root() / "data"
+        path = fallback if not (os.getenv("VERCEL") or os.getenv("VERCEL_ENV")) else path
     path.mkdir(parents=True, exist_ok=True)
     return path
 

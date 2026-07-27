@@ -61,15 +61,17 @@ C4Context
 | API 入口 | `apps/api/app/main.py` | HTTP/SSE、系统状态、研究与运行 API |
 | 多维热点 | `tools/hotspot_lanes.py` | 五通道组装与行业过滤 |
 | SeekMoney 线索 | `tools/seekmoney_clues.py` | 结构化商机（拒吃瓜） |
+| AI 重构 | `tools/ai_rebuild_clues.py` | 一痛点一条；理由/组合/成功率 |
 | 热点仓库 | `tools/hotspot_warehouse.py` | 缓存/预热/查询 |
-| 同步调度 | `tools/sync_scheduler.py` | 定时增量抓取 |
+| 同步调度 | `tools/sync_scheduler.py` + `sync_logs.py` | 定时/手动增量与日志 |
 | 项目推荐 | `tools/project_*.py` | 可落地过滤与方案 |
 | 落地任务 | `tools/landing_tasks.py` | 本地 CRUD |
 | 工作流 | `workflow_graph.py` / `node_runner.py` | 图执行与节点状态 |
 | Agent 管线 | `agents/pipeline.py` | 商机/模式/开发/营销/飞轮 |
 | 模型 | `llm.py` / `providers.py` | 多厂商路由 |
+| Vercel 入口 | `api/index.py` | Serverless FastAPI |
 | Theme | `theme-packs/` | 垂直场景包 |
-| 规则 | `rules/` | 广告法等 |
+| 规则 | `rules/` · 根 `AGENTS.md` | 广告法 / 工程同步 |
 
 ## 5. 运行时拓扑
 
@@ -93,6 +95,28 @@ Browser → api:8080
 ```
 
 详见 `docker-compose.yml` 与 `docs/sidecars.md`。
+
+### 5.3 Vercel Serverless
+
+```
+Browser → Vercel Function (api/index.py)
+            → FastAPI app (apps/api)
+            → /tmp/leadforge-data（无持久）
+            → 外网 LLM / newsnow / GitHub
+```
+
+- 启动跳过后台预热与定时同步（`LEADFORGE_SKIP_BACKGROUND=1`）。
+- 国内直连 `*.vercel.app` 可能失败；国内演示用本机 + cpolar。
+
+### 5.4 本机穿透
+
+```
+访客 → cpolar 公网 HTTPS → 开发者本机 :8080 → FastAPI
+```
+
+脚本：`start-public.bat` / `start-tunnel.bat` / `scripts/start-tunnel.ps1`。
+
+完整流程与 GitHub↔Vercel 对齐见 [`06-deploy-and-sync.md`](./06-deploy-and-sync.md)。
 
 ## 6. 关键链路：验证工作流
 
@@ -131,4 +155,5 @@ Browser → api:8080
 |:---|:---|
 | 可观测 | SSE 事件、同步日志、运行记录 |
 | 可恢复 | 节点重跑、工作流暂停/继续 |
-| 可测试 | 工具层纯函数（如 seekmoney/landing_tasks）可单测 |
+| 可测试 | 工具层纯函数（如 seekmoney/landing_tasks/ai_rebuild）可单测 |
+| 可发布 | 文档与 GitHub `main`、Vercel Production 同变更对齐（`AGENTS.md`） |

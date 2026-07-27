@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pip install -r requirements.txt",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{docs/assets/**,.venv/**,**/__pycache__/**,data/**,apps/api/.venv/**,integrations/trendradar/output/**,integrations/paperclip/**,.git/**}"
+    }
+  }
+}

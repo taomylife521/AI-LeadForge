@@ -18,6 +18,7 @@ from typing import Any, Optional
 from app.envelope import ModelRoute
 from app.llm import LLMClient
 from app.theme_recommend import list_all_industries, list_cn_vc_market_industries
+from app.tools.ai_rebuild_clues import build_ai_rebuild_cards, industry_github_queries
 from app.tools.hotspot_opportunity import group_hotspots_by_platform
 from app.tools.hotspot_sources import (
     _item,
@@ -44,7 +45,7 @@ LANE_DEFS: list[dict[str, str]] = [
     {"id": "seekmoney", "label": "商机线索", "desc": "SeekMoney 痛点发现框架提炼"},
     {"id": "vc", "label": "创投热点", "desc": "36氪/创业邦等创业项目与融资动态"},
     {"id": "pain", "label": "行业痛点", "desc": "传统行业与平台侧可验证痛点场景"},
-    {"id": "ai_rebuild", "label": "AI重构", "desc": "各行各业可用 AI 重做的作业场景"},
+    {"id": "ai_rebuild", "label": "AI重构", "desc": "紧扣行业痛点的可落地 AI 改造（相关开源项目可点开）"},
 ]
 
 
@@ -366,44 +367,55 @@ async def collect_github_hotspot_items(*, topic: str = "", industry: str = "", l
         return False
 
     rows: list[dict[str, Any]] = []
+    # 有明确行业时：少拉全局 Trending，优先行业搜索（减少错配）
+    pull_trending = not bool((industry or "").strip())
     try:
-        for lang, since in (("", "daily"), ("python", "weekly"), ("typescript", "weekly")):
-            try:
-                part = await fetch_github_trending(language=lang, since=since, limit=8)
-            except Exception:  # noqa: BLE001
-                continue
-            for r in part:
-                title = str(r.get("title") or "")
-                snip = str(r.get("snippet") or "GitHub Trending")
-                if _looks_junk(title, snip):
+        if pull_trending:
+            for lang, since in (("", "daily"), ("python", "weekly"), ("typescript", "weekly")):
+                try:
+                    part = await fetch_github_trending(language=lang, since=since, limit=8)
+                except Exception:  # noqa: BLE001
                     continue
-                rows.append(
-                    _as_hotspot(
-                        title=title,
-                        url=str(r.get("url") or ""),
-                        snippet=snip,
-                        provider="github_trending",
-                        heat=float(r.get("heat") or 40),
-                        lane="github",
-                        meta={
-                            "lane": "github",
-                            "platform": "github",
-                            "platform_label": "GitHub",
-                            "region": "global",
-                        },
+                for r in part:
+                    title = str(r.get("title") or "")
+                    snip = str(r.get("snippet") or "GitHub Trending")
+                    if _looks_junk(title, snip):
+                        continue
+                    rows.append(
+                        _as_hotspot(
+                            title=title,
+                            url=str(r.get("url") or ""),
+                            snippet=snip,
+                            provider="github_trending",
+                            heat=float(r.get("heat") or 40),
+                            lane="github",
+                            meta={
+                                "lane": "github",
+                                "platform": "github",
+                                "platform_label": "GitHub",
+                                "region": "global",
+                            },
+                        )
                     )
-                )
     except Exception:  # noqa: BLE001
         pass
 
-    queries = build_github_queries(topic or "AI agent SaaS China", industry or "本地生活")
-    # 固定补几条高相关搜索，避免行业词过窄导致空结果
-    queries = list(dict.fromkeys(list(queries) + [
-        "AI agent stars:>100",
-        "chatbot CRM language:TypeScript",
-        "appointment booking SaaS",
-    ]))
-    for q in queries[:4]:
+    queries = build_github_queries(topic or "AI agent SaaS China", industry or "")
+    # 行业优先：用主题相关检索，避免热榜 JavaGuide/LangChain 硬套行业
+    if (industry or "").strip():
+        queries = list(dict.fromkeys(industry_github_queries(industry) + list(queries)))
+    else:
+        queries = list(
+            dict.fromkeys(
+                list(queries)
+                + [
+                    "AI agent stars:>100",
+                    "chatbot CRM language:TypeScript",
+                    "appointment booking SaaS",
+                ]
+            )
+        )
+    for q in queries[:6 if (industry or "").strip() else 4]:
         try:
             part = await fetch_github_search_repos(q, limit=8)
             for r in part:
@@ -535,6 +547,10 @@ def _industry_keywords(industry: str) -> list[str]:
         "农林牧渔": ("农业", "农林", "牧渔", "养殖", "种植", "农产品"),
         "能源环保": ("能源", "环保", "新能源", "光伏", "储能", "碳中和", "节能"),
         "本地生活": ("本地生活", "到店", "外卖", "团购", "门店", "核销", "预约", "家政", "餐饮"),
+        "生活技巧": (
+            "生活技巧", "生活妙招", "生活hack", "收纳", "家务", "烹饪技巧", "居家",
+            "life tips", "lifehack", "lifestyle", "howto", "daily tips", "habit",
+        ),
         "体育游戏": ("体育", "游戏", "电竞", "赛事", "健身"),
         "跨境出海": ("跨境", "出海", "独立站", "跨境电商", "国际化", "geo"),
         "房产地产": ("房产", "地产", "物业", "租房", "装修", "中介"),
@@ -923,74 +939,22 @@ def build_rule_insight_lanes(
             )
         )
 
-    scene_industries = _diversified_industries("", limit=12)
-    for j, g in enumerate(github_rows[:12]):
-        title = str(g.get("title") or "").strip()
-        if not title:
+    # AI 重构：紧扣行业 + 相关项目（禁止热榜机械套「重做{行业}」）
+    raw_rebuild = build_ai_rebuild_cards(
+        github_rows=github_rows,
+        vc_rows=vc_rows,
+        industry=preferred,
+        industry_keys=_industry_keywords(preferred) if preferred else [],
+        limit=limit_each,
+    )
+    for row in raw_rebuild:
+        if not isinstance(row, dict):
             continue
-        raw = f"{title} {g.get('snippet') or ''}"
-        job = _best_job_for_tool(raw)
-        tool_ind = _resolve_item_industry(raw, allow_tool_map=True, fallback="SaaS·开发者工具")
-        if preferred:
-            scene = preferred
-        else:
-            scene = tool_ind if tool_ind else scene_industries[j % max(1, len(scene_industries))]
-            if tool_ind.startswith("教育") or "guide" in raw.lower() or "javaguide" in raw.lower():
-                scene = "教育·阅读学习工具"
-        ai_rebuild.append(
-            _as_hotspot(
-                title=f"AI重构：用「{title[:22]}」重做{scene}的{job[0]}",
-                url=str(g.get("url") or f"leadforge://ai/{j}"),
-                snippet=(
-                    f"工具能力→{job[0]} · 落地场景:{scene} · 付费方:{job[1]} · "
-                    f"{job[2]} · 两周：fork 跑通→换领域数据→5 人试用"
-                )[:220],
-                provider="insight:ai_rebuild",
-                heat=float(g.get("heat") or 40) + 12,
-                lane="ai_rebuild",
-                meta={
-                    "lane": "ai_rebuild",
-                    "platform_label": "AI重构",
-                    "industry": scene,
-                    "tool_industry": tool_ind,
-                    "surface_pain": job[0],
-                    "who_pays": job[1],
-                    "mvp_2w": job[2],
-                    "github": title,
-                    "industry_basis": "user_filter+tool_job" if preferred else "tool_job",
-                    "confidence": 0.62,
-                    "methodology": "opc+github",
-                },
-            )
-        )
-
-    if len(ai_rebuild) < 4:
-        for j, v in enumerate(vc_rows[:6]):
-            title = str(v.get("title") or "").strip()
-            if not title:
-                continue
-            raw = f"{title} {v.get('snippet') or ''}"
-            job = _best_job_for_tool(raw)
-            ind = preferred or _resolve_item_industry(raw, allow_tool_map=True, fallback="本地服务")
-            ai_rebuild.append(
-                _as_hotspot(
-                    title=f"AI重构：借鉴「{title[:22]}」改造{ind}的{job[0]}",
-                    url=str(v.get("url") or f"leadforge://ai/vc/{j}"),
-                    snippet=f"创投信号 · 工具能力→{job[0]} · 付费方:{job[1]} · {job[2]}"[:200],
-                    provider="insight:ai_rebuild",
-                    heat=45 + j,
-                    lane="ai_rebuild",
-                    meta={
-                        "lane": "ai_rebuild",
-                        "platform_label": "AI重构",
-                        "industry": ind,
-                        "who_pays": job[1],
-                        "mvp_2w": job[2],
-                        "industry_basis": "user_filter+tool_job" if preferred else "tool_job",
-                        "confidence": 0.5,
-                    },
-                )
-            )
+        meta = row.get("meta") if isinstance(row.get("meta"), dict) else {}
+        row["lane"] = "ai_rebuild"
+        meta["lane"] = "ai_rebuild"
+        row["meta"] = meta
+        ai_rebuild.append(row)
 
     def _cap(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen: set[str] = set()

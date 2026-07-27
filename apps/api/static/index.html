@@ -155,6 +155,8 @@ body::before{
 .hot-item:active{transform:scale(.99)}
 .hot-item b{display:block; font-size:12px; font-weight:600; margin-bottom:3px; line-height:1.35}
 .hot-item .meta{font-family:var(--mono); font-size:10px; color:var(--muted)}
+.hot-item .hot-actions{display:flex; gap:6px; margin-top:6px; flex-wrap:wrap}
+.hot-item .hot-actions .btn{padding:3px 8px; font-size:11px; min-height:0}
 .hot-platform-tabs{display:flex; gap:4px; margin:0 0 10px; flex-wrap:wrap}
 .hot-platform-tab{
   border:1px solid var(--line); background:transparent; color:var(--muted);
@@ -683,7 +685,8 @@ input,select,textarea{
       </div>
       <div class="dock-panel" id="dockSync">
         <h3>抓取同步日志</h3>
-        <div class="hint" style="margin-bottom:8px">显示定时/手动增量同步的耗时、数量与错误。</div>
+        <div class="hint" style="margin-bottom:8px">显示定时/手动增量同步的耗时、数量与错误。同步约需 15–40 秒，请等完成后再刷新。</div>
+        <div id="syncEphemeralHint" class="hint" style="display:none;margin-bottom:8px;color:var(--warn,#c9a227)"></div>
         <div class="row" style="gap:6px;margin-bottom:8px">
           <button class="btn ghost" type="button" onclick="refreshSyncLogs()">刷新日志</button>
           <button class="btn copper" type="button" onclick="runIncrementalSyncNow()">立即同步</button>
@@ -732,6 +735,9 @@ input,select,textarea{
 
 <div id="hitlModal" class="modal-mask" style="display:none" onclick="if(event.target===this)closeHitlModal()">
   <div class="modal" id="hitlModalBody"></div>
+</div>
+<div id="hotDetailModal" class="modal-mask" style="display:none" onclick="if(event.target===this)closeHotDetail()">
+  <div class="modal" id="hotDetailBody" style="max-width:560px;max-height:80vh;overflow:auto"></div>
 </div>
 
 <script>
@@ -1561,6 +1567,7 @@ function renderHotBox(){
   }
   const desc = lane?.desc ? `<div class="hint" style="margin-bottom:8px">${escapeHtml(lane.desc)}${lane.ref?` · <a href="${escapeHtml(lane.ref)}" target="_blank" rel="noreferrer">SeekMoney</a>`:""}</div>` : "";
   const isSeek = lane && lane.id === "seekmoney";
+  const isRebuild = lane && lane.id === "ai_rebuild";
   box.innerHTML = desc + items.map((h, i)=>{
     const on = window.__hotSelected?.has(i) ? "on" : "";
     const heat = h.heat!=null ? `热度 ${Math.round(Number(h.heat))}` : "";
@@ -1569,11 +1576,14 @@ function renderHotBox(){
     const basis = h.meta?.industry_basis ? `依据 ${h.meta.industry_basis}` : "";
     const toolInd = h.meta?.tool_industry && h.meta.tool_industry !== ind ? `工具侧 ${h.meta.tool_industry}` : "";
     const pay = h.meta?.who_pays ? `付费方 ${h.meta.who_pays}` : "";
+    const gh = (isRebuild && h.meta?.github) ? `项目 ${h.meta.github}` : "";
+    const fit = (isRebuild && h.meta?.fit_score!=null) ? `相关度 ${h.meta.fit_score}` : "";
+    const prob = (isRebuild && h.meta?.success_prob!=null) ? `成功约 ${h.meta.success_prob}%` : "";
     const scores = (isSeek && (h.meta?.demand_score!=null || h.meta?.priority_score!=null))
       ? `D${h.meta.demand_score??"—"}/M${h.meta.market_score??"—"}/C${h.meta.competition_score??"—"} · P${h.meta.priority_score??"—"}`
       : "";
     const quality = isSeek && h.meta?.data_quality ? `质量 ${h.meta.data_quality}` : "";
-    const meta = [rank, ind, toolInd, pay, scores, quality, basis, heat].filter(Boolean).join(" · ");
+    const meta = [rank, ind, toolInd, pay, gh, fit, prob, scores, quality, basis, heat].filter(Boolean).join(" · ");
     let snipHtml = "";
     if (isSeek && (h.meta?.surface_pain || h.meta?.root_cause || h.meta?.mvp_2w)) {
       const bits = [
@@ -1582,15 +1592,78 @@ function renderHotBox(){
         h.meta.mvp_2w ? `两周：${h.meta.mvp_2w}` : "",
       ].filter(Boolean);
       snipHtml = `<div class="meta" style="margin-top:4px;white-space:normal;font-family:inherit">${escapeHtml(bits.join(" · ").slice(0,180))}</div>`;
+    } else if (isRebuild && (h.meta?.surface_pain || h.meta?.why_project || h.meta?.mvp_2w)) {
+      const bits = [
+        h.meta.surface_pain ? `痛点：${h.meta.surface_pain}` : "",
+        h.meta.why_project ? `为何此项目：${h.meta.why_project}` : "",
+        h.meta.combo_better ? `组合更优：${h.meta.combo_better}` : "",
+        (h.meta.success_prob!=null) ? `成功概率约 ${h.meta.success_prob}%${h.meta.success_note?`（${h.meta.success_note}）`:""}` : "",
+        h.meta.mvp_2w ? `两周：${h.meta.mvp_2w}` : "",
+      ].filter(Boolean);
+      snipHtml = `<div class="meta" style="margin-top:4px;white-space:normal;font-family:inherit;line-height:1.45">${escapeHtml(bits.join(" · ").slice(0,360))}</div>`;
     } else if (h.snippet) {
-      snipHtml = `<div class="meta" style="margin-top:4px;white-space:normal;font-family:inherit">${escapeHtml(String(h.snippet).slice(0,120))}</div>`;
+      snipHtml = `<div class="meta" style="margin-top:4px;white-space:normal;font-family:inherit">${escapeHtml(String(h.snippet).slice(0,140))}</div>`;
     }
-    return `<div class="hot-item ${on}" onclick="toggleHot(${i})">
-      <b>${escapeHtml((h.title||"").toString().slice(0,80))}</b>
+    const openUrl = String(h.meta?.project_url || h.url || "").trim();
+    const canOpen = /^https?:\/\//i.test(openUrl);
+    const actions = `<div class="hot-actions" onclick="event.stopPropagation()">
+      <button type="button" class="btn copper" onclick="openHotDetail(${i})">查看详情</button>
+      ${canOpen ? `<a class="btn ghost" href="${escapeHtml(openUrl)}" target="_blank" rel="noreferrer">打开原文</a>` : ""}
+      <button type="button" class="btn ghost" onclick="toggleHot(${i})">${on?"取消选用":"选用主题"}</button>
+    </div>`;
+    return `<div class="hot-item ${on}" onclick="openHotDetail(${i})">
+      <b>${escapeHtml((h.title||"").toString().slice(0,90))}</b>
       <div class="meta">${escapeHtml(meta)}</div>
       ${snipHtml}
+      ${actions}
     </div>`;
   }).join("");
+}
+
+/**
+ * 打开热点/AI重构详情弹层。
+ * @param {number} i
+ */
+function openHotDetail(i){
+  const h = (window.__hotItems||[])[i];
+  const body = $("hotDetailBody");
+  const mask = $("hotDetailModal");
+  if (!h || !body || !mask) return;
+  const openUrl = String(h.meta?.project_url || h.url || "").trim();
+  const canOpen = /^https?:\/\//i.test(openUrl);
+  const m = h.meta || {};
+  const rows = [
+    ["行业", m.industry || h.industry || "—"],
+    ["真实痛点", m.surface_pain || "—"],
+    ["为何此项目能做", m.why_project || "—"],
+    ["组合更优选择", m.combo_better || "—"],
+    ["成功概率", m.success_prob != null ? `${m.success_prob}%${m.success_note ? " · " + m.success_note : ""}` : "—"],
+    ["付费方", m.who_pays || "—"],
+    ["两周验证", m.mvp_2w || "—"],
+    ["主推项目", m.github || "—"],
+    ["备选项目", (m.alternatives || []).join(" / ") || "—"],
+    ["匹配依据", m.industry_basis || "—"],
+    ["来源摘要", m.source_snippet || h.snippet || "—"],
+  ].filter(([, v]) => v && v !== "—");
+  body.innerHTML = `
+    <h2>${escapeHtml((h.title||"").toString().slice(0,120))}</h2>
+    <div class="sub">${escapeHtml([m.platform_label || h.provider || "", m.industry || ""].filter(Boolean).join(" · "))}</div>
+    <div style="font-size:13px;line-height:1.55;margin-bottom:12px">${escapeHtml(String(h.snippet||"").slice(0,400))}</div>
+    <div style="display:grid;gap:8px;margin-bottom:14px">
+      ${rows.map(([k,v]) => `<div><div class="meta" style="margin-bottom:2px">${escapeHtml(k)}</div><div style="font-size:13px;line-height:1.45">${escapeHtml(String(v))}</div></div>`).join("")}
+    </div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      ${canOpen ? `<a class="btn copper" href="${escapeHtml(openUrl)}" target="_blank" rel="noreferrer">打开原文 / 项目</a>` : ""}
+      <button type="button" class="btn ghost" onclick="toggleHot(${i});closeHotDetail()">选用为验证主题</button>
+      <button type="button" class="btn ghost" onclick="closeHotDetail()">关闭</button>
+    </div>`;
+  mask.style.display = "flex";
+}
+
+/** 关闭热点详情弹层。 */
+function closeHotDetail(){
+  const mask = $("hotDetailModal");
+  if (mask) mask.style.display = "none";
 }
 
 function toggleHot(i){
@@ -2028,62 +2101,127 @@ async function saveSyncConfig(){
   }
 }
 
+/** 最近一次「立即同步」返回的 run，避免 Serverless 跨实例刷新丢日志 */
+let _lastSyncRun = null;
+
+/**
+ * 同步日志状态徽章样式。
+ * @param {string} status
+ * @returns {string}
+ */
+function syncStatusBadge(status){
+  const s = String(status || "");
+  if (s === "ok") return "pass";
+  if (s === "partial" || s === "running") return "warn";
+  return "issue";
+}
+
+/**
+ * 渲染单条同步日志 HTML。
+ * @param {object} r
+ * @returns {string}
+ */
+function renderSyncLogItem(r){
+  const ms = r.duration_ms != null ? `${r.duration_ms} ms` : "-";
+  const when = String(r.started_at || "").slice(0,19).replace("T"," ");
+  const counts = r.counts || {};
+  const err = (r.errors || []).slice(0,2).join("；");
+  const note = r.note ? `<div class="meta">${escapeHtml(String(r.note).slice(0,120))}</div>` : "";
+  return `<div class="hot-item" style="cursor:default">
+    <b>${escapeHtml(r.kind||"sync")} · ${escapeHtml(r.trigger||"")}</b>
+    <div class="meta"><span class="badge ${syncStatusBadge(r.status)}">${escapeHtml(r.status||"")}</span> ${escapeHtml(when)} · 耗时 ${escapeHtml(ms)}</div>
+    <div class="meta">新增 ${r.added||0} · 更新 ${r.updated||0} · vc ${counts.vc||0} · github ${counts.github||0} · newsnow+${counts.newsnow_added||0}</div>
+    ${note}
+    ${err ? `<div class="meta issue">${escapeHtml(err)}</div>` : ""}
+  </div>`;
+}
+
 /**
  * 手动触发一轮增量同步。
  */
 async function runIncrementalSyncNow(){
   const hint = $("syncActionHint");
-  if (hint) hint.textContent = "正在同步 36氪/创业邦/独立开发/GitHub/热搜…";
+  const box = $("syncLogBox");
+  if (hint) hint.textContent = "正在同步 36氪/创业邦/独立开发/GitHub/热搜（约 15–40 秒，请勿反复点刷新）…";
+  if (box) {
+    box.innerHTML = `<div class="hot-item" style="cursor:default">
+      <b>vc_incremental · manual</b>
+      <div class="meta"><span class="badge warn">running</span> 抓取中…</div>
+      <div class="meta">完成后会自动写入结果；期间刷新可能仍显示 running（属正常）。</div>
+    </div>` + (box.innerHTML || "");
+  }
   try {
     const res = await api("/api/research/sync/run", {
       method: "POST",
       body: JSON.stringify({ include_github: true, include_newsnow: true }),
     });
     const run = res.run || {};
+    _lastSyncRun = run;
     const ms = run.duration_ms != null ? `${run.duration_ms}ms` : "";
     const counts = run.counts || {};
     if (hint) {
-      hint.innerHTML = `<span class="badge ${run.status==="ok"?"pass":"warn"}">${escapeHtml(run.status||"")}</span> `
+      hint.innerHTML = `<span class="badge ${syncStatusBadge(run.status)}">${escapeHtml(run.status||"")}</span> `
         + `耗时 ${ms} · 新增 ${run.added||0} · 更新 ${run.updated||0} · `
         + `vc=${counts.vc||0} github=${counts.github||0}`;
     }
-    await refreshSyncLogs();
+    // 先用本次返回结果渲染，再尝试拉列表合并（跨实例时列表可能为空）
+    if (box && run.id) {
+      box.innerHTML = renderSyncLogItem(run);
+    }
+    await refreshSyncLogs(run);
     await refreshGithubAndSyncStatus();
     await refreshHotLibStats();
   } catch (e) {
     if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+    if (box) {
+      box.innerHTML = `<div class="error-state">同步请求失败或超时：${escapeHtml(e.message||String(e))}。若仍见 running，多为云端实例被中断，请再点「立即同步」。</div>` + (box.innerHTML || "");
+    }
   }
 }
 
 /**
  * 渲染同步日志列表。
+ * @param {object|null} preferRun 优先展示的 run（通常来自刚完成的同步响应）
  */
-async function refreshSyncLogs(){
+async function refreshSyncLogs(preferRun){
   const box = $("syncLogBox");
   if (!box) return;
+  const eph = $("syncEphemeralHint");
   box.innerHTML = `<div class="skeleton"></div>`;
   try {
     const data = await api("/api/research/sync/logs?limit=30");
-    const items = data.items || [];
+    if (eph) {
+      if (data.ephemeral && data.hint) {
+        eph.style.display = "block";
+        eph.textContent = data.hint;
+      } else {
+        eph.style.display = "none";
+        eph.textContent = "";
+      }
+    }
+    let items = data.items || [];
+    const seed = preferRun || _lastSyncRun;
+    if (seed && seed.id) {
+      const sid = String(seed.id);
+      if (!items.some(x => String(x.id) === sid)) {
+        items = [seed, ...items];
+      } else {
+        items = items.map(x => String(x.id) === sid && seed.status !== "running" ? {...x, ...seed} : x);
+      }
+    }
     if (!items.length) {
-      box.innerHTML = `<div class="empty">暂无同步记录。可点「立即同步」。</div>`;
+      box.innerHTML = `<div class="empty">暂无同步记录。可点「立即同步」。${data.ephemeral ? "<br/>云端无持久盘时，刷新打到新实例也可能暂时空白。" : ""}</div>`;
       return;
     }
-    box.innerHTML = items.map(r => {
-      const ms = r.duration_ms != null ? `${r.duration_ms} ms` : "-";
-      const when = String(r.started_at || "").slice(0,19).replace("T"," ");
-      const counts = r.counts || {};
-      const err = (r.errors || []).slice(0,2).join("；");
-      const badge = r.status === "ok" ? "pass" : (r.status === "partial" ? "warn" : "issue");
-      return `<div class="hot-item" style="cursor:default">
-        <b>${escapeHtml(r.kind||"sync")} · ${escapeHtml(r.trigger||"")}</b>
-        <div class="meta"><span class="badge ${badge}">${escapeHtml(r.status||"")}</span> ${escapeHtml(when)} · 耗时 ${escapeHtml(ms)}</div>
-        <div class="meta">新增 ${r.added||0} · 更新 ${r.updated||0} · vc ${counts.vc||0} · github ${counts.github||0} · newsnow+${counts.newsnow_added||0}</div>
-        ${err ? `<div class="meta issue">${escapeHtml(err)}</div>` : ""}
-      </div>`;
-    }).join("");
+    box.innerHTML = items.map(renderSyncLogItem).join("");
   } catch (e) {
-    box.innerHTML = `<div class="error-state">${escapeHtml(e.message||String(e))}</div>`;
+    // 列表失败时至少展示本地缓存的最近一次结果
+    if (_lastSyncRun && _lastSyncRun.id) {
+      box.innerHTML = renderSyncLogItem(_lastSyncRun)
+        + `<div class="meta issue">列表拉取失败：${escapeHtml(e.message||String(e))}</div>`;
+    } else {
+      box.innerHTML = `<div class="error-state">${escapeHtml(e.message||String(e))}</div>`;
+    }
   }
 }
 

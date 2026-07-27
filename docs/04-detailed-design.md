@@ -127,15 +127,30 @@ leadforge/
 - `landable_filter` + 库内评分；输出角色（主项目/工具/对标）。
 - `landing_plan` 生成两周 Markdown（OPC 约束）。
 
+### 4.4 AI 重构（`ai_rebuild_clues.py`）
+
+1. **去重**：按能力原型（全网）或行业场景（已选行业）各产出至多一条，禁止多仓库共用同一痛点文案。  
+2. **字段**（写入 `meta`）：`surface_pain`、`why_project`、`combo_better`、`success_prob`、`success_note`、`github`、`project_url`、`alternatives`。  
+3. **过滤**：汇编示例、面试指南、纯书单等噪声仓不进入主推。  
+4. **标题**：`AI重构：{场景} · {具体痛点}`；列表与详情可点开项目 URL。  
+5. 由 `hotspot_lanes.build_rule_insight_lanes` 调用组装进 `ai_rebuild` 通道。
+
+### 4.5 同步日志（`sync_logs.py`）
+
+- `start_sync_run` / `finish_sync_run` 落盘；进程内环形缓冲合并，缓解 Serverless 跨实例丢日志。  
+- `running` 超时标记为 `interrupted`。
+
 ## 5. 前端交互要点（控制台）
 
 | 场景 | 行为 |
 |:---|:---|
 | 开始验证 | 校验主题 → POST async → `openAux('canvas')` → 进度卡刷新 |
 | 定商机建议 | `.rec-item` 高对比文字；选中高亮 |
+| AI 重构卡片 | 查看详情 / 打开原文 / 选用主题；展示痛点·理由·组合·成功率 |
+| 同步日志 | 立即同步后优先渲染接口返回的 run；提示 ephemeral |
 | 去落地 | 搜索/筛选；详情可编辑；子任务状态下拉 |
 
-静态资源由 FastAPI `/` 与 `/static` 提供，无独立前端构建。
+静态资源由 FastAPI `/` 提供（另挂 `/assets`、`/media`），无独立前端构建。
 
 ## 6. 配置项
 
@@ -143,9 +158,11 @@ leadforge/
 |:---|:---|:---|
 | `.env` | 根目录 | 密钥与端口 |
 | `MODEL_PROFILE` | env / UI | 模型档位 |
-| `LEADFORGE_DATA_DIR` | env | 数据目录 |
+| `LEADFORGE_DATA_DIR` | env | 数据目录；Vercel 用 `/tmp/leadforge-data` |
+| `LEADFORGE_SKIP_BACKGROUND` | env | `1` 时跳过定时同步与启动预热 |
 | `workflow_templates` | config/ | 验证图 |
 | `pack.yaml` | theme-packs/ | 垂直 KPI 与默认主题 |
+| Vercel 入口 | `api/index.py` · `vercel.json` | Serverless 部署 |
 
 ## 7. 错误处理约定
 

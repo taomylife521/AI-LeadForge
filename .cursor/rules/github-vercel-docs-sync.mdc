@@ -1,0 +1,26 @@
+---
+description: 功能改动必须同步 README/docs，并保持 GitHub main 与 Vercel Production 一致
+alwaysApply: true
+---
+
+# GitHub · Vercel · 文档三方一致
+
+## 何时适用
+
+改动涉及产品行为、部署、热点/AI 重构、穿透、环境变量、对外 URL 时，本规则始终生效。
+
+## 必须做
+
+1. **同变更更新文档**：至少 `README.md`；按影响面更新 `docs/01`–`06` 与 `docs/README.md`；工程约定写在根目录 `AGENTS.md`。
+2. **先 Git 后（或同步）Vercel**：
+   - `git status` → commit（含文档）→ `git push origin HEAD`（默认 `main`）
+   - 确认 Vercel Production 部署对应该 commit；未自动构建则 `npx vercel --prod --yes`
+3. **禁止**：只 `vercel --prod` 不 push；或只 push 不更新 README/相关 docs。
+4. **密钥**：永不提交；Vercel 环境变量与 `.env.example` 变量名对齐说明即可。
+5. **AI 重构**：遵循 `AGENTS.md` §4 与 `ai_rebuild_clues.py`（一痛点一条、可解释、可点开）。
+
+## 验收自检
+
+- [ ] README 能按新行为跑通（本地 / 穿透 / Vercel 说明仍正确）
+- [ ] `docs/06-deploy-and-sync.md` 与真实入口文件（`api/index.py`、`vercel.json`、`start-*.bat`）一致
+- [ ] GitHub `main` HEAD 与 Vercel 生产部署源一致（或已触发新部署）

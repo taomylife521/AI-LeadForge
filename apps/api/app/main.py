@@ -153,6 +153,9 @@ async def _seed_methodology_projects() -> None:
     将 SeekMoney / 一人企业方法论仓库写入项目库（幂等）。
     """
 
+    if os.getenv("LEADFORGE_SKIP_BACKGROUND") == "1":
+        return
+
     async def _job() -> None:
         try:
             await asyncio.sleep(1)
@@ -172,6 +175,9 @@ async def _warm_project_library_if_empty() -> None:
     """
     库为空时后台预热一批项目（不阻塞启动；失败仅打日志）。
     """
+
+    if os.getenv("LEADFORGE_SKIP_BACKGROUND") == "1":
+        return
 
     async def _job() -> None:
         try:
@@ -199,6 +205,9 @@ async def _warm_hotspot_warehouse_if_stale() -> None:
     热点库为空或过期时后台预热（不阻塞启动）。
     """
 
+    if os.getenv("LEADFORGE_SKIP_BACKGROUND") == "1":
+        return
+
     async def _job() -> None:
         try:
             if warehouse_ready(min_count=20) and not is_warehouse_stale():
@@ -219,6 +228,10 @@ async def _warm_hotspot_warehouse_if_stale() -> None:
 @app.on_event("startup")
 async def _start_incremental_sync_scheduler() -> None:
     """启动创投/GitHub/热搜增量同步定时任务。"""
+
+    if os.getenv("LEADFORGE_SKIP_BACKGROUND") == "1":
+        print("[leadforge] sync scheduler skipped (serverless)")
+        return
 
     try:
         start_background_scheduler()
@@ -378,6 +391,9 @@ async def health() -> dict[str, Any]:
         "service": "leadforge-api",
         "profile": get_active_profile_id(),
         "has_llm_key": any_llm_key_present(),
+        "ephemeral_storage": bool(
+            os.getenv("VERCEL") or os.getenv("VERCEL_ENV") or os.getenv("LEADFORGE_SKIP_BACKGROUND") == "1"
+        ),
     }
 
 

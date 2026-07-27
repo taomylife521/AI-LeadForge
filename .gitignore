@@ -18,5 +18,11 @@ data/n8n/
 skills/vendor/
 *.pem
 *.key
-.cursor/
 agent-tools/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
+.vercel
+tools/cloudflared/
+tools/cpolar/

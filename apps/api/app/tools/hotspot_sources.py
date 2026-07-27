@@ -335,11 +335,19 @@ def build_github_queries(topic: str, industry_name: str = "") -> list[str]:
     topic = (topic or "").strip()
     industry = (industry_name or "").strip()
     base = " ".join(x for x in [topic, industry] if x)
-    return [
+    queries = [
         f"{base} marketplace OR saas OR startup",
-        f"{topic} business model OR opportunity",
+        f"{topic} business model OR opportunity" if topic else "",
         f"{industry or topic} china OR 创业 OR 融资",
     ]
+    if industry:
+        try:
+            from app.tools.ai_rebuild_clues import industry_github_queries
+
+            queries = industry_github_queries(industry) + queries
+        except Exception:  # noqa: BLE001
+            pass
+    return [q for q in queries if q]
 
 
 async def collect_free_hotspots(

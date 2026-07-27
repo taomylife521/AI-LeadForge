@@ -1,0 +1,13 @@
+.venv
+apps/api/.venv
+**/__pycache__
+**/*.pyc
+.git
+data
+docs/assets
+integrations/trendradar/output
+integrations/paperclip
+*.log
+.cursor
+agent-transcripts
+node_modules

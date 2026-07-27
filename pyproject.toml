@@ -1,0 +1,13 @@
+# LeadForge Python 项目元数据（含 Vercel 入口声明）
+# 创建时间: 2026-07-27
+
+[project]
+name = "leadforge"
+version = "0.3.0"
+description = "LeadForge：看热点→定商机→选项目→去落地"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.vercel]
+entrypoint = "api.index:app"
