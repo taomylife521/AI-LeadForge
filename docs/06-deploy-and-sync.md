@@ -53,3 +53,19 @@
 - 本机：`GET /api/health`  
 - Vercel：同上；响应可含 `ephemeral_storage: true`  
 - 穿透：对公网 URL 请求 `/api/health`
+
+## 6. 本机代理排障
+
+若终端继承了 `ALL_PROXY` / `HTTPS_PROXY`（如本机 SOCKS），而 venv 未装 `socksio`，热点同步 / 主题推荐 / 项目抓取可能报：
+
+`Using SOCKS proxy, but the 'socksio' package is not installed`
+
+处理任选其一：
+
+```powershell
+apps\api\.venv\Scripts\python.exe -m pip install "httpx[socks]" socksio
+# 或启动前清空代理后再起 uvicorn
+$env:ALL_PROXY=''; $env:HTTPS_PROXY=''; $env:HTTP_PROXY=''
+```
+
+README 配图可用：`scripts/capture-readme-screens.py`（需 8080 已启动且库内有数据）。
