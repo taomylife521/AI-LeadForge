@@ -1,0 +1,12 @@
+{
+  "id": "anthropic-balanced",
+  "label": "Anthropic 均衡",
+  "description": "旗舰 Sonnet + Haiku 分流。",
+  "provider": "anthropic",
+  "required_env": ["ANTHROPIC_API_KEY"],
+  "routes": {
+    "tier_s": "anthropic/claude-sonnet-4-20250514",
+    "tier_m": "anthropic/claude-3-5-haiku-latest",
+    "tier_xs": "anthropic/claude-3-5-haiku-latest"
+  }
+}

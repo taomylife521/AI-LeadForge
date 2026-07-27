@@ -1,0 +1,10 @@
+# LeadForge Next 落地页脚手架参数（DevAgent 只改这类文件）
+brand: "LeadForge Clinic"
+headline: "48小时上线本地获客页"
+subhead: "合规文案 · 表单线索 · 可回流 ROI"
+cta: "预约到店评估"
+form_fields:
+  - name
+  - phone
+  - city
+theme_pack: local-service-leadgen

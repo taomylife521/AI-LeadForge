@@ -1,0 +1,82 @@
+# LiteLLM 统一网关：按「逻辑档位」路由到物理模型
+# 物理模型由 active_profile.json + model_profiles 决定映射表在 API 层热切换；
+# 本文件提供稳定的 OpenAI 兼容入口别名 tier_s / tier_m / tier_xs。
+# 创建时间: 2026-07-23
+
+model_list:
+  # ---- OpenAI ----
+  - model_name: openai/gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: openai/gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ---- Anthropic ----
+  - model_name: anthropic/claude-sonnet-4-20250514
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: anthropic/claude-3-5-haiku-latest
+    litellm_params:
+      model: anthropic/claude-3-5-haiku-latest
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ---- 通义 Qwen（OpenAI 兼容）----
+  - model_name: qwen/qwen-max
+    litellm_params:
+      model: openai/qwen-max
+      api_key: os.environ/QWEN_API_KEY
+      api_base: os.environ/QWEN_API_BASE
+
+  - model_name: qwen/qwen-plus
+    litellm_params:
+      model: openai/qwen-plus
+      api_key: os.environ/QWEN_API_KEY
+      api_base: os.environ/QWEN_API_BASE
+
+  - model_name: qwen/qwen-turbo
+    litellm_params:
+      model: openai/qwen-turbo
+      api_key: os.environ/QWEN_API_KEY
+      api_base: os.environ/QWEN_API_BASE
+
+  # ---- DeepSeek ----
+  - model_name: deepseek/deepseek-chat
+    litellm_params:
+      model: openai/deepseek-chat
+      api_key: os.environ/DEEPSEEK_API_KEY
+      api_base: os.environ/DEEPSEEK_API_BASE
+
+  # ---- Ollama 本地 ----
+  - model_name: ollama/llama3.2
+    litellm_params:
+      model: ollama/llama3.2
+      api_base: os.environ/OLLAMA_API_BASE
+
+  # ---- 逻辑档位默认（可被 profile 覆盖为别名调用）----
+  - model_name: tier_s
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: tier_m
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: tier_xs
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

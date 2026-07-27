@@ -1,0 +1,12 @@
+{
+  "id": "qwen-cn",
+  "label": "通义千问（国内）",
+  "description": "商机/模式用 qwen-max；营销用 qwen-plus；清洗用 qwen-turbo。",
+  "provider": "qwen",
+  "required_env": ["QWEN_API_KEY"],
+  "routes": {
+    "tier_s": "qwen/qwen-max",
+    "tier_m": "qwen/qwen-plus",
+    "tier_xs": "qwen/qwen-turbo"
+  }
+}

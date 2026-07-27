@@ -1,0 +1,3917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LeadForge Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#10130c; --panel:#171b13; --panel2:#1f2519; --line:#323a2a;
+  --text:#eef2e4; --muted:#9aa38a; --signal:#c6f000; --signal-dim:#7a9900;
+  --copper:#d4a27f; --danger:#ff6b5a; --ok:#7dffb3; --wait:#ffd36a;
+  --font:"Outfit",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --radius:14px; --radius-sm:8px;
+  --shadow:0 10px 32px rgba(8,12,4,.4);
+  --shadow-signal:0 6px 22px rgba(198,240,0,.1);
+  --surface:#141910; --surface-deep:#0c1009;
+  --z-top:40; --z-modal:80; --z-aux:50;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:var(--font); color:var(--text); background:var(--bg);
+  background-image:
+    radial-gradient(1000px 480px at 8% -12%, rgba(198,240,0,.09), transparent 55%),
+    radial-gradient(800px 420px at 92% 0%, rgba(212,162,127,.06), transparent 48%),
+    linear-gradient(180deg,#13170f,#0e120b);
+  overflow:hidden; font-feature-settings:"tnum" 1;
+  font-variant-numeric:tabular-nums;
+}
+body::before{
+  content:""; pointer-events:none; position:fixed; inset:0; z-index:1; opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.shell{position:relative; z-index:2; display:grid; grid-template-rows:58px 48px 1fr 44px; height:100dvh; min-height:100vh}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:0 18px; border-bottom:1px solid var(--line);
+  background:rgba(16,19,12,.9); backdrop-filter:blur(12px);
+}
+.brand{display:flex; flex-direction:column; gap:1px}
+.brand b{font-size:16px; letter-spacing:.04em; font-weight:700; text-wrap:balance}
+.brand span{font-size:11px; color:var(--muted); letter-spacing:.02em}
+.top-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.pill{font-family:var(--mono); font-size:10px; padding:5px 9px; border-radius:999px;
+  border:1px solid var(--line); color:var(--muted); background:var(--panel);
+  transition:border-color .18s ease, color .18s ease, background .18s ease}
+.pill.on{color:var(--signal); border-color:var(--signal-dim); background:#1e2614}
+.pill.warn{color:var(--wait)} .pill.bad{color:var(--danger)}
+.btn{
+  border:1px solid var(--line); background:#2a3122; color:var(--text);
+  border-radius:10px; padding:8px 12px; font:inherit; font-weight:600; font-size:12px; cursor:pointer;
+  transition:border-color .18s ease, transform .12s ease, background .18s ease, box-shadow .18s ease;
+}
+.btn:hover{border-color:#4a5638; box-shadow:var(--shadow-signal)}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible{outline:2px solid var(--signal-dim); outline-offset:2px}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none; box-shadow:none}
+.btn.signal{background:#2f3d0e; border-color:var(--signal-dim); color:var(--signal)}
+.btn.copper{background:#3a2c22; border-color:#6b4e38; color:var(--copper)}
+.btn.ghost{background:transparent}
+.pipeline-bar{
+  display:flex; align-items:stretch; gap:0; padding:0 12px;
+  border-bottom:1px solid var(--line); background:rgba(20,25,14,.92); overflow-x:auto;
+}
+.pipe-step{
+  flex:1; min-width:140px; display:flex; flex-direction:column; justify-content:center;
+  gap:2px; padding:8px 14px; border:none; background:transparent; color:var(--muted);
+  cursor:pointer; font:inherit; text-align:left; border-bottom:2px solid transparent;
+  transition:color .18s ease, background .18s ease, border-color .18s ease;
+}
+.pipe-step:hover{color:var(--text); background:rgba(198,240,0,.04)}
+.pipe-step.on{color:var(--signal); border-bottom-color:var(--signal); background:rgba(198,240,0,.06)}
+.pipe-step .num{font-family:var(--mono); font-size:10px; letter-spacing:.08em; opacity:.8}
+.pipe-step .lab{font-size:13px; font-weight:600}
+.app-body{display:grid; grid-template-columns:minmax(0,1fr) 280px; min-height:0}
+@media(max-width:1100px){.app-body{grid-template-columns:1fr}}
+.pipeline-main{min-height:0; overflow:auto; padding:16px 18px 24px}
+.stage{display:none; animation:fadeUp .28s ease}
+.stage.on{display:block}
+@keyframes fadeUp{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+.stage-head{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:14px}
+.stage-head h2{margin:0; font-size:22px; font-weight:700; letter-spacing:-.02em; text-wrap:balance}
+.stage-head p{margin:4px 0 0; color:var(--muted); font-size:13px; max-width:52ch; line-height:1.45}
+.stage-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:14px; min-height:0}
+@media(max-width:960px){.stage-grid{grid-template-columns:1fr}}
+.panel-card{
+  border:1px solid var(--line); border-radius:var(--radius); padding:14px;
+  background:var(--surface); box-shadow:var(--shadow); min-height:0;
+}
+.panel-card h3{
+  margin:0 0 10px; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); font-weight:700;
+}
+.embed-frame{
+  width:100%; height:min(62vh,560px); border:1px solid var(--line); border-radius:var(--radius-sm);
+  background:var(--surface-deep);
+}
+.embed-toolbar{display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap}
+.config-rail{
+  border-left:1px solid var(--line); padding:12px; overflow:auto; background:rgba(22,26,16,.95);
+  min-height:0;
+}
+@media(max-width:1100px){.config-rail{display:none}}
+.side-section{
+  border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;
+  background:var(--surface); box-shadow:var(--shadow);
+}
+.side-section > .sec-title{
+  margin:0 0 10px; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); font-weight:700;
+}
+.side-actions{display:flex; flex-direction:column; gap:6px}
+.side-actions .row{flex-wrap:wrap}
+.aux-bar{
+  display:flex; align-items:center; gap:6px; padding:0 12px;
+  border-top:1px solid var(--line); background:rgba(16,19,12,.95);
+}
+.aux-tab{
+  border:1px solid transparent; background:transparent; color:var(--muted);
+  border-radius:8px 8px 0 0; padding:8px 12px; font:inherit; font-size:12px; font-weight:600; cursor:pointer;
+}
+.aux-tab.on{color:var(--signal); border-color:var(--line); border-bottom-color:var(--bg); background:var(--panel)}
+.aux-drawer{
+  position:fixed; left:0; right:0; bottom:0; z-index:var(--z-aux);
+  height:min(52vh,520px); transform:translateY(100%);
+  transition:transform .28s ease; background:rgba(14,18,10,.97);
+  border-top:1px solid var(--line); box-shadow:0 -12px 40px rgba(0,0,0,.35);
+  display:flex; flex-direction:column;
+}
+.aux-drawer.open{transform:translateY(0)}
+.aux-drawer-head{display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--line)}
+.aux-drawer-body{flex:1; min-height:0; overflow:auto; padding:12px}
+.inspector{display:flex; flex-direction:column; gap:10px; min-height:0}
+.dock-tabs{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap}
+.dock-tab{flex:1; min-width:72px; text-align:center; padding:8px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; font-size:11px; font-weight:600}
+.dock-tab.on{background:#2a331c; color:var(--signal); border-color:var(--signal-dim)}
+.dock-panel{display:none}
+.dock-panel.on{display:block}
+.canvas-wrap{position:relative; min-height:280px; overflow:auto; background:
+  radial-gradient(circle at 20% 20%, rgba(198,240,0,.05), transparent 40%),
+  linear-gradient(180deg,#12170e,#0e130b); border:1px solid var(--line); border-radius:12px}
+.canvas{position:relative; width:2100px; height:520px}
+.wires{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+.skeleton{height:12px; border-radius:6px; margin:6px 0;
+  background:linear-gradient(90deg,#1a2014 0%,#2a331c 45%,#1a2014 100%);
+  background-size:200% 100%; animation:shimmer 1.2s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.hot-item{
+  border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-bottom:6px;
+  cursor:pointer; background:var(--surface-deep); transition:border-color .15s ease, transform .12s ease;
+}
+.hot-item:hover,.hot-item.on{border-color:var(--signal-dim)}
+.hot-item:active{transform:scale(.99)}
+.hot-item b{display:block; font-size:12px; font-weight:600; margin-bottom:3px; line-height:1.35}
+.hot-item .meta{font-family:var(--mono); font-size:10px; color:var(--muted)}
+.hot-platform-tabs{display:flex; gap:4px; margin:0 0 10px; flex-wrap:wrap}
+.hot-platform-tab{
+  border:1px solid var(--line); background:transparent; color:var(--muted);
+  border-radius:8px; padding:5px 10px; cursor:pointer; font:inherit; font-size:12px;
+}
+.hot-platform-tab.on{background:#2a331c; color:var(--signal); border-color:var(--signal-dim)}
+.hot-platform-tab .cnt{font-family:var(--mono); font-size:10px; opacity:.75; margin-left:4px}
+.opp-extract-card{
+  border:1px solid var(--line); border-radius:12px; padding:12px; margin:0 0 8px;
+  background:var(--surface-deep); cursor:pointer; text-align:left; width:100%; font:inherit; color:inherit;
+}
+.opp-extract-card:hover{border-color:var(--signal-dim)}
+.opp-extract-card h4{margin:0 0 6px; font-size:14px}
+.opp-extract-card .meta{font-size:11px; color:var(--muted); line-height:1.45}
+.opp-extract-card .conf{font-family:var(--mono); font-size:10px; color:var(--signal)}
+.empty-state,.error-state,.empty{
+  border:1px dashed var(--line); border-radius:10px; padding:14px; text-align:center;
+  color:var(--muted); font-size:12px; line-height:1.5;
+}
+.error-state{border-color:rgba(255,107,90,.45); color:var(--danger)}
+.issue-row{
+  border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px;
+  background:var(--panel2); color:var(--text); cursor:pointer;
+}
+.issue-row:hover{border-color:var(--signal-dim)}
+.issue-row.selected{border-color:var(--signal); box-shadow:0 0 0 1px rgba(198,240,0,.2)}
+.issue-row b{display:block; font-size:14px; font-weight:600; margin-bottom:6px; color:var(--text)}
+.issue-row .meta{color:#b4c0a4; font-size:12px}
+.issue-row ul{margin:8px 0 0; padding-left:18px; color:#c5d0b6; font-size:12px; line-height:1.55}
+.issue-row .child-st{
+  display:inline-block; min-width:44px; font-size:10px; padding:1px 6px; margin-right:6px;
+  border-radius:4px; border:1px solid var(--line); color:var(--wait); vertical-align:middle;
+}
+.issue-row .child-st.done{color:var(--ok); border-color:#2a5a3c}
+.issue-row .child-st.doing{color:var(--signal); border-color:var(--signal-dim)}
+.issue-row .child-st.blocked{color:var(--danger)}
+.task-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+.task-actions .btn{pointer-events:auto}
+.st-chip{
+  display:inline-block; font-size:11px; padding:2px 8px; border-radius:6px;
+  border:1px solid var(--line); color:#d6e0c8; background:#1a2214;
+}
+.st-chip.todo{color:var(--wait)} .st-chip.doing{color:var(--signal)}
+.st-chip.done{color:var(--ok)} .st-chip.blocked{color:var(--danger)}
+.child-edit-row{
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  padding:8px 0; border-bottom:1px solid rgba(50,58,42,.6); color:var(--text);
+}
+.child-edit-row:last-child{border-bottom:none}
+.child-edit-row input[type="text"]{flex:1; min-width:140px}
+.child-edit-row select{min-width:96px}
+#landingCreatePanel{
+  display:none; margin-top:10px; padding:12px; border:1px solid var(--line);
+  border-radius:10px; background:var(--panel2);
+}
+#landingCreatePanel.open{display:block}
+.proj-tabs{display:flex; gap:4px; margin:8px 0; flex-wrap:wrap}
+.proj-tab{
+  flex:1; min-width:64px; text-align:center; padding:7px 4px; border-radius:8px;
+  border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer;
+  font-size:11px; font-weight:600;
+}
+.proj-tab.on{background:#2a331c; color:var(--signal); border-color:var(--signal-dim)}
+.proj-filters{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:6px 0}
+.proj-filters select{font-size:11px; padding:7px 8px}
+.tip{cursor:help; border-bottom:1px dotted #556244}
+.tip:hover{color:var(--signal)}
+.field{margin-bottom:8px}
+.field label{display:block; font-size:11px; color:var(--muted); margin-bottom:4px; letter-spacing:.04em}
+.field input,.field select,.field textarea,
+input,select,textarea{
+  width:100%; border:1px solid var(--line); border-radius:8px; background:#0f140c;
+  color:var(--text); padding:8px 10px; font:inherit; font-size:12px;
+}
+.field textarea{min-height:72px; resize:vertical}
+.row{display:flex; gap:8px; align-items:center}
+.check{display:flex; gap:8px; align-items:center; font-size:12px; color:var(--muted); margin:6px 0}
+.hint{color:var(--muted); font-size:12px; line-height:1.45}
+#topicRecBox{color:var(--text); font-size:12px; line-height:1.45}
+#topicRecBox .rec-head{color:var(--muted); margin-bottom:8px; font-size:12px}
+#topicRecBox .rec-head b{color:var(--text); font-weight:600}
+.mono{font-family:var(--mono); font-size:10px; color:var(--muted)}
+.issue{color:var(--danger)}
+.badge{display:inline-block; font-size:10px; padding:2px 6px; border-radius:6px; border:1px solid var(--line); margin:2px 4px 2px 0; color:var(--muted)}
+.badge.pass{color:var(--ok); border-color:#2a5a3c} .badge.warn{color:var(--wait)} .badge.block{color:var(--danger)}
+.proj-card{border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-bottom:8px; background:#12170e}
+.proj-card a{color:var(--signal); text-decoration:none; font-weight:600; font-size:12px}
+.proj-card a:hover{text-decoration:underline}
+.combo-card{border:1px solid #3a4a28; border-radius:10px; padding:10px 12px; margin-bottom:10px; background:#10160c}
+.combo-card h5{margin:0 0 6px; font-size:13px; color:var(--signal)}
+.landing-plan-box{border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:10px; background:#0e130b; max-height:420px; overflow:auto; white-space:pre-wrap; font-size:12px; line-height:1.55}
+.rec-item{
+  display:block; width:100%; text-align:left; border:1px solid var(--line);
+  background:var(--panel2); color:var(--text);
+  border-radius:10px; padding:10px 12px; margin:0 0 8px; cursor:pointer;
+  font:inherit; font-size:13px; line-height:1.4;
+}
+.rec-item:hover{border-color:var(--signal-dim); background:#1c2416}
+.rec-item:focus, .rec-item.selected{
+  outline:none; border-color:var(--signal); background:#1a2412;
+  box-shadow:0 0 0 1px rgba(198,240,0,.25);
+}
+.rec-item b{display:block; font-size:13px; font-weight:600; margin-bottom:4px; color:var(--text)}
+.rec-item:focus b, .rec-item.selected b{color:var(--signal)}
+.rec-item span{display:block; color:#b4c0a4; font-size:12px; line-height:1.4}
+.list-item{padding:8px; border:1px solid var(--line); border-radius:10px; margin-bottom:6px; cursor:pointer}
+.list-item:hover{border-color:#556244}
+.side-collapse summary{cursor:pointer; color:var(--muted); font-size:12px; font-weight:600}
+.node{
+  position:absolute; width:160px; min-height:54px; padding:8px 10px; border-radius:12px;
+  border:1px solid var(--line); background:var(--panel); cursor:pointer; font-size:11px;
+}
+.node.active{border-color:var(--signal); box-shadow:var(--shadow-signal)}
+.node.running{border-color:var(--wait)} .node.success{border-color:#2a5a3c}
+.node.failed{border-color:var(--danger)} .node.waiting{border-color:var(--copper)}
+.modal-mask{
+  position:fixed; inset:0; z-index:var(--z-modal); background:rgba(0,0,0,.55);
+  display:flex; align-items:flex-start; justify-content:center; padding:24px; overflow:auto;
+}
+.modal{
+  width:min(1380px,100%); background:linear-gradient(180deg,#1a2014,#12170e);
+  border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:var(--shadow);
+}
+.modal h2{margin:0 0 6px; font-size:18px}
+.modal .sub{color:var(--muted); font-size:12px; margin-bottom:14px}
+.dash-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.dash-card{border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--surface)}
+.dash-card.full{grid-column:1/-1}
+.dash-card h4{margin:0 0 8px; font-size:13px}
+.chart-row{display:grid; grid-template-columns:repeat(5,1fr); gap:8px}
+@media(max-width:1100px){.chart-row{grid-template-columns:1fr 1fr;}.dash-grid{grid-template-columns:1fr}}
+.chart-box{border:1px solid var(--line); border-radius:10px; padding:8px; background:var(--surface-deep)}
+.chart-box .cap{font-size:10px; color:var(--muted); margin-bottom:4px}
+.hitl-card{border:1px dashed var(--wait); border-radius:10px; padding:10px; margin-bottom:8px; cursor:pointer}
+.score-pill{display:flex; flex-wrap:wrap; gap:6px}
+.score-pill span{font-family:var(--mono); font-size:10px; padding:3px 6px; border:1px solid var(--line); border-radius:6px}
+.alert-line{color:var(--wait); font-size:12px; margin-top:6px}
+.risk-fold{border:1px solid var(--line); border-radius:10px; margin-top:8px}
+.risk-fold summary{padding:8px 10px; cursor:pointer}
+.risk-body{padding:0 12px 12px}
+.calc-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.ue-metric{border:1px solid var(--line); border-radius:8px; padding:8px}
+.ue-metric .k{font-size:10px; color:var(--muted)} .ue-metric .v{font-size:14px; font-weight:700}
+.workspace{display:contents}
+.side{display:contents}
+.resizer{display:none!important}
+.run-status-card{
+  margin-top:10px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius-sm);
+  background:linear-gradient(135deg, rgba(198,240,0,.06), transparent 55%), var(--panel2);
+}
+.run-status-card.running{border-color:rgba(198,240,0,.35); box-shadow:var(--shadow-signal)}
+.run-status-card.done{border-color:rgba(125,255,179,.35)}
+.run-status-card.failed{border-color:rgba(255,107,90,.4)}
+.run-status-card .rs-title{font-weight:600; font-size:13px; margin-bottom:4px}
+.run-status-card .rs-meta{color:var(--muted); font-size:12px; line-height:1.5; margin-bottom:8px}
+.run-status-card .rs-bar{
+  height:6px; border-radius:99px; background:rgba(255,255,255,.06); overflow:hidden; margin:8px 0 10px;
+}
+.run-status-card .rs-bar > i{
+  display:block; height:100%; width:0; background:linear-gradient(90deg, var(--signal-dim), var(--signal));
+  transition:width .35s ease;
+}
+.aux-tab.pulse{
+  color:var(--signal)!important; border-color:rgba(198,240,0,.45)!important;
+  animation:auxPulse 1.2s ease-in-out infinite;
+}
+@keyframes auxPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(198,240,0,.0)}
+  50%{box-shadow:0 0 0 3px rgba(198,240,0,.18)}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <b>LEADFORGE</b>
+      <span>发现商机 · 匹配项目 · 落地执行</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" type="button" onclick="openAux('hitl')">审批中心</button>
+      <button class="btn ghost" type="button" onclick="openAux('canvas')">工作流</button>
+      <span class="pill on" id="agnesPill">模型就绪</span>
+      <span class="pill" id="llmPill">正式</span>
+      <span class="pill on" id="trPill" title="热点服务">热点就绪</span>
+      <span class="pill on" id="pcPill" title="任务中心">任务就绪</span>
+      <span class="pill" id="profilePill">默认档位</span>
+      <button class="btn ghost" onclick="refreshMeta()">刷新</button>
+    </div>
+  </header>
+
+  <nav class="pipeline-bar" aria-label="落地流水线">
+    <button class="pipe-step on" type="button" data-stage="hot" onclick="goStage('hot')"><span class="num">01</span><span class="lab">看热点</span></button>
+    <button class="pipe-step" type="button" data-stage="opp" onclick="goStage('opp')"><span class="num">02</span><span class="lab">定商机</span></button>
+    <button class="pipe-step" type="button" data-stage="land" onclick="goStage('land')"><span class="num">03</span><span class="lab">选项目</span></button>
+    <button class="pipe-step" type="button" data-stage="hand" onclick="goStage('hand')"><span class="num">04</span><span class="lab">去落地</span></button>
+  </nav>
+
+  <div class="app-body">
+    <main class="pipeline-main">
+      <section class="stage on" id="stageHot">
+        <div class="stage-head">
+          <div>
+            <h2>看热点</h2>
+            <p>平台热搜 · SeekMoney 商机线索 · 创投项目 · 行业痛点 · AI 可重构场景。</p>
+          </div>
+          <div class="row">
+            <button class="btn ghost" type="button" onclick="loadHotspotLanes(true, false)">同步热搜与创投</button>
+            <button class="btn ghost" type="button" onclick="loadHotspotLanes(false, true)">AI 加深洞察</button>
+            <button class="btn copper" type="button" onclick="extractHotOpportunities()">AI 提炼商机</button>
+            <button class="btn signal" type="button" onclick="runHotspotOpportunity()">生成落地项目</button>
+          </div>
+        </div>
+        <div class="stage-grid">
+          <div class="panel-card">
+            <h3>多维热点</h3>
+            <div class="row" style="gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+              <label style="margin:0;opacity:.8">所属行业</label>
+              <select id="hotIndustry" onchange="onHotIndustryChange()" style="min-width:180px"></select>
+              <input id="hotIndustryCustom" style="display:none;min-width:160px" placeholder="自定义行业后回车" onkeydown="if(event.key==='Enter'){commitHotCustomIndustry();}" />
+              <button class="btn ghost" type="button" onclick="loadHotspotLanes(false, false)">按行业刷新</button>
+            </div>
+            <div class="hint" id="hotLibStats" style="margin-bottom:8px"></div>
+            <div class="hot-platform-tabs" id="hotLaneTabs"></div>
+            <div class="hot-platform-tabs" id="hotPlatformTabs" style="display:none"></div>
+            <div class="hint" id="hotHint">所属行业默认「不限」=全网；选项对齐创投目录（医疗健康、本地生活、企业服务等）。</div>
+            <div id="hotBox" style="margin-top:8px"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+          </div>
+          <div class="panel-card">
+            <h3>AI 可落地商机</h3>
+            <div class="hint" id="hotOppHint">综合各通道信号，提炼可靠可实操方向。</div>
+            <div id="hotOppBox" class="empty-state" style="margin-top:8px">尚未提炼。打开「看热点」已含商机线索；可再点「AI 提炼商机」。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage" id="stageOpp">
+        <div class="stage-head">
+          <div>
+            <h2>定商机</h2>
+            <p>确认方向后点「开始验证」→ 底部会弹出<strong>工作流</strong>进度；结果在节点输出与「运行记录」。</p>
+          </div>
+          <div class="row">
+            <button class="btn ghost" type="button" onclick="runHuntOnly()">深度研判</button>
+            <button class="btn signal" type="button" id="runBtnTop" onclick="startRun()">开始验证</button>
+          </div>
+        </div>
+        <div class="stage-grid">
+          <div class="panel-card">
+            <h3>商机方向</h3>
+            <div class="field">
+              <label>主题</label>
+              <input id="topic" placeholder="例如：宠物经济、牙科预约转化、本地生活 SaaS" />
+            </div>
+            <div class="side-actions">
+              <div class="row" style="gap:6px">
+                <button class="btn ghost" type="button" onclick="refreshTopics(true, {keepIndustry:true})">换一批建议</button>
+                <button class="btn ghost" type="button" onclick="refreshTopics(true, {rotateIndustry:true})">换个行业</button>
+              </div>
+              <div class="row" style="gap:6px">
+                <button class="btn ghost" type="button" onclick="applyRecommended()">采用首选</button>
+                <button class="btn copper" type="button" onclick="goStage('land'); loadRecommendedProjects(false)">下一步：选项目</button>
+              </div>
+            </div>
+            <div id="topicRecBox" style="margin-top:8px">加载推荐中…</div>
+            <label class="check" style="display:none"><input type="checkbox" id="forceBad" /> 注入违规文案（测红队）</label>
+            <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+              <button class="btn signal" id="runBtn" onclick="startRun()">开始验证</button>
+              <button class="btn ghost" type="button" id="pauseBtn" onclick="controlRun('pause')">暂停</button>
+              <button class="btn ghost" type="button" id="resumeBtn" onclick="controlRun('resume')">继续</button>
+              <button class="btn" type="button" id="stopBtn" onclick="controlRun('stop')">停止</button>
+              <button class="btn copper" type="button" id="restartBtn" onclick="controlRun('restart')">重新开始</button>
+            </div>
+            <div class="hint" id="runControlHint" style="margin-top:6px">点「开始验证」后，页面下方会打开「工作流」看实时节点进度；历史在「运行记录」。</div>
+            <div id="runStatusCard" class="run-status-card" style="display:none" aria-live="polite">
+              <div class="rs-title" id="runStatusTitle">尚未开始验证</div>
+              <div class="rs-meta" id="runStatusMeta">填写主题后点击「开始验证」。</div>
+              <div class="rs-bar" aria-hidden="true"><i id="runStatusBar"></i></div>
+              <div class="row" style="gap:6px;flex-wrap:wrap">
+                <button class="btn signal" type="button" onclick="openAux('canvas')">看工作流进度</button>
+                <button class="btn ghost" type="button" onclick="openAux('traces');refreshTraces()">运行记录</button>
+                <button class="btn ghost" type="button" onclick="openAux('hitl')">审批中心</button>
+                <button class="btn copper" type="button" onclick="goStage('land');loadRecommendedProjects(false)">去选项目</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-card">
+            <h3>场景与规则</h3>
+            <div class="field">
+              <label>业务场景包</label>
+              <select id="themePack" onchange="onThemePackChange()"></select>
+              <div class="hint" id="themePackHint">不同场景包会调整审校重点与默认方向。</div>
+            </div>
+            <div class="field">
+              <label>行业</label>
+              <select id="industrySelect" onchange="onIndustryChange()"></select>
+              <input id="industryCustom" style="display:none;margin-top:6px" placeholder="自定义行业后回车" onkeydown="if(event.key==='Enter'){commitCustomIndustry();}" />
+            </div>
+            <div class="field">
+              <label>流程模板</label>
+              <select id="wfTemplate"></select>
+            </div>
+            <div class="row" style="gap:6px">
+              <input id="wfCloneId" placeholder="新模板编号" style="flex:1.2" />
+              <input id="wfCloneName" placeholder="显示名称" style="flex:1" />
+            </div>
+            <div class="row" style="margin-top:6px;gap:6px">
+              <button class="btn ghost" type="button" onclick="saveWorkflowTemplate()">另存模板</button>
+              <button class="btn ghost" type="button" onclick="deleteWorkflowTemplate()">删除模板</button>
+            </div>
+            <div class="hint" id="wfTemplateHint">可按团队习惯保存常用验证流程。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage" id="stageLand">
+        <div class="stage-head">
+          <div>
+            <h2>选项目</h2>
+            <p>只推荐经分析后可落地的开源与创投项目，并生成落地方案。</p>
+          </div>
+          <div class="row">
+            <button class="btn ghost" type="button" onclick="loadRecommendedProjects(false)">刷新推荐</button>
+            <button class="btn copper" type="button" onclick="loadRecommendedProjects(true)">更新项目库</button>
+            <button class="btn signal" type="button" onclick="goStage('hand')">下一步：去落地</button>
+          </div>
+        </div>
+        <div class="panel-card">
+          <div class="proj-tabs" id="projSourceTabs">
+            <button class="proj-tab on" type="button" data-src="" onclick="setProjSource(this)">全部</button>
+            <button class="proj-tab" type="button" data-src="github" onclick="setProjSource(this)">GitHub</button>
+            <button class="proj-tab" type="button" data-src="36kr" onclick="setProjSource(this)">36氪</button>
+            <button class="proj-tab" type="button" data-src="cyzone" onclick="setProjSource(this)">创业邦</button>
+            <button class="proj-tab" type="button" data-src="cid_indie" onclick="setProjSource(this)">独立开发</button>
+          </div>
+          <div class="proj-filters">
+            <select id="projIndustry" onchange="loadRecommendedProjects(false)"><option value="">行业·全部</option></select>
+            <select id="projTrack" onchange="loadRecommendedProjects(false)">
+              <option value="">赛道·全部</option>
+              <option value="saas">SaaS</option><option value="local">本地生活</option>
+              <option value="ai_tool">AI工具</option><option value="health">健康</option>
+              <option value="content">内容</option><option value="devtools">开发者</option><option value="fintech">金融</option>
+            </select>
+            <select id="projDiff" onchange="loadRecommendedProjects(false)">
+              <option value="">难度·全部</option><option value="easy">易</option><option value="mid">中</option><option value="hard">难</option>
+            </select>
+            <select id="projRegion" onchange="loadRecommendedProjects(false)">
+              <option value="">地区·全部</option><option value="中国">中国</option><option value="北京">北京</option>
+              <option value="上海">上海</option><option value="深圳">深圳</option><option value="杭州">杭州</option>
+              <option value="全球/开源">全球/开源</option>
+            </select>
+            <select id="projStage" onchange="loadRecommendedProjects(false)">
+              <option value="">阶段·全部</option><option value="种子轮">种子轮</option><option value="天使轮">天使轮</option>
+              <option value="Pre-A">Pre-A</option><option value="A轮">A轮</option><option value="B轮">B轮</option>
+            </select>
+            <select id="projFunding" onchange="loadRecommendedProjects(false)">
+              <option value="">融资额·全部</option><option value="under_5m">&lt;500万</option>
+              <option value="5m_50m">500万–5千万</option><option value="50m_500m">5千万–5亿</option>
+            </select>
+            <select id="projNature" onchange="loadRecommendedProjects(false)">
+              <option value="">公司性质·全部</option><option value="开源项目">开源项目</option><option value="初创公司">初创公司</option>
+            </select>
+          </div>
+          <div class="hint" id="projectLibStats" style="display:none"></div>
+          <div class="hint" id="projectActionHint"></div>
+          <div id="projectBox" class="hint">加载中…</div>
+          <div id="landingPlanBox"></div>
+        </div>
+      </section>
+
+      <section class="stage" id="stageHand">
+        <div class="stage-head">
+          <div>
+            <h2>去落地</h2>
+            <p>落地任务支持增删查改：搜索筛选、编辑详情、切换子任务状态。</p>
+          </div>
+          <div class="row">
+            <button class="btn ghost" type="button" onclick="loadPaperclipIssues()">刷新</button>
+            <button class="btn signal" type="button" onclick="toggleLandingCreate(true)">新建任务</button>
+            <button class="btn copper" type="button" onclick="handoffToPaperclip('')">从商机生成</button>
+          </div>
+        </div>
+        <div class="panel-card">
+          <h3>落地任务</h3>
+          <div class="row" style="gap:8px;flex-wrap:wrap;margin:8px 0">
+            <input id="taskSearchQ" placeholder="搜索标题 / 主题 / 子任务" style="flex:1;min-width:180px" onkeydown="if(event.key==='Enter')loadPaperclipIssues()" />
+            <select id="taskStatusFilter" onchange="loadPaperclipIssues()" style="min-width:120px">
+              <option value="">状态·全部</option>
+              <option value="todo">待办</option>
+              <option value="doing">进行中</option>
+              <option value="done">已完成</option>
+              <option value="blocked">受阻</option>
+              <option value="cancelled">已取消</option>
+            </select>
+            <button class="btn ghost" type="button" onclick="loadPaperclipIssues()">查询</button>
+          </div>
+          <div class="hint" id="paperclipHandoffStatus">可点「新建任务」手动创建，或「从商机生成」按当前主题拆解。</div>
+          <div id="landingCreatePanel">
+            <div class="field"><label>主题（必填）</label><input id="newTaskTopic" placeholder="例如：牙科种植到店转化" /></div>
+            <div class="field"><label>任务标题</label><input id="newTaskTitle" placeholder="留空则自动：落地 · 主题" /></div>
+            <div class="field"><label>行业</label><input id="newTaskIndustry" placeholder="可选" /></div>
+            <div class="field"><label>备注</label><textarea id="newTaskContext" rows="2" placeholder="可选说明"></textarea></div>
+            <div class="row" style="gap:6px;margin-top:8px">
+              <button class="btn signal" type="button" onclick="createLandingTaskManual()">保存新建</button>
+              <button class="btn ghost" type="button" onclick="toggleLandingCreate(false)">取消</button>
+            </div>
+          </div>
+          <div id="pcIssueBox" class="empty-state" style="margin-top:8px">暂无任务，创建后将显示在这里。</div>
+          <div id="landingTaskDetail" style="margin-top:12px"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="config-rail">
+      <div class="side-section">
+        <div class="sec-title">快捷操作</div>
+        <button class="btn signal" style="width:100%" type="button" onclick="goStage('hot');loadHotspotLanes(false, false)">刷新热点</button>
+        <button class="btn ghost" style="width:100%;margin-top:6px" type="button" onclick="goStage('hot');loadHotspotLanes(false, true)">AI 加深洞察</button>
+        <button class="btn copper" style="width:100%;margin-top:6px" type="button" onclick="goStage('hot');extractHotOpportunities()">AI 提炼商机</button>
+        <button class="btn ghost" style="width:100%;margin-top:6px" type="button" onclick="warmHotspots()">预热热点库</button>
+        <button class="btn copper" style="width:100%;margin-top:6px" type="button" onclick="openAux('hitl')">打开审批</button>
+        <button class="btn ghost" style="width:100%;margin-top:6px" type="button" onclick="openAux('canvas')">查看工作流</button>
+      </div>
+      <details class="side-collapse">
+        <summary>系统设置</summary>
+        <div class="field" style="margin-top:8px"><label>模型档位</label><select id="profileSelect" onchange="onProfileSelectChange(this.value)"></select></div>
+        <div class="hint" id="freeCatalogHint" style="margin-bottom:8px;display:none"></div>
+        <div class="field"><label>服务商</label><select id="freeProvider" onchange="onFreeProviderChange()"></select></div>
+        <div class="field"><label>模型</label><select id="freeModel"></select></div>
+        <div id="keyGuideBox" class="dash-card" style="margin:8px 0;padding:10px">
+          <div class="hint">如需更换模型服务，按引导完成配置即可。</div>
+          <ol class="hint" style="margin:6px 0 8px 18px;padding:0;line-height:1.5" id="keyGuideSteps">
+            <li>打开服务商开通页面</li>
+            <li>复制访问密钥</li>
+            <li>粘贴并保存</li>
+          </ol>
+          <div class="field" style="display:none"><label>配置项</label><input id="keyEnvName" readonly placeholder="" /></div>
+          <div class="field"><label>访问密钥</label><input id="keyPaste" type="password" placeholder="粘贴密钥" /></div>
+          <label class="check"><input type="checkbox" id="keyWriteDotenv" checked /> 记住本次配置</label>
+          <div class="row" style="margin-top:8px;gap:6px">
+            <a class="btn ghost" id="keySignupBtn" href="#" target="_blank" rel="noreferrer">去开通</a>
+            <button class="btn signal" type="button" onclick="saveAndActivateKey()">保存并启用</button>
+          </div>
+          <div class="hint" id="keyGuideStatus" style="margin-top:6px"></div>
+        </div>
+        <button class="btn signal" type="button" onclick="activateFreeModel()">切换模型</button>
+        <div class="hint" id="freeProviderMeta" style="margin-top:6px"></div>
+
+        <div class="dash-card" style="margin:12px 0;padding:10px">
+          <div class="sec-title" style="margin-bottom:6px">GitHub 抓取密钥</div>
+          <div class="hint" id="githubTokenStatus">检测中…</div>
+          <div class="field" style="margin-top:6px">
+            <label>GITHUB_TOKEN</label>
+            <input id="githubTokenPaste" type="password" placeholder="粘贴 github.com/settings/tokens" />
+          </div>
+          <label class="check"><input type="checkbox" id="githubWriteDotenv" checked /> 写入 .env 持久化</label>
+          <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+            <a class="btn ghost" href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">去生成 Token</a>
+            <button class="btn signal" type="button" onclick="saveGithubToken()">保存 Token</button>
+          </div>
+          <div class="hint" id="githubTokenHint" style="margin-top:6px">建议勾选 public_repo，用于 Search API 防限流。</div>
+        </div>
+
+        <div class="dash-card" style="margin:12px 0;padding:10px">
+          <div class="sec-title" style="margin-bottom:6px">定时增量同步</div>
+          <div class="hint" id="syncSchedStatus">36氪 / 创业邦 / 独立开发 / GitHub / 热搜</div>
+          <div class="field" style="margin-top:6px">
+            <label>间隔（分钟）</label>
+            <input id="syncIntervalMin" type="number" min="5" max="1440" value="30" />
+          </div>
+          <label class="check"><input type="checkbox" id="syncEnabled" checked /> 启用后台定时抓取</label>
+          <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+            <button class="btn ghost" type="button" onclick="saveSyncConfig()">保存配置</button>
+            <button class="btn copper" type="button" onclick="runIncrementalSyncNow()">立即同步</button>
+            <button class="btn ghost" type="button" onclick="openAux('sync');refreshSyncLogs()">同步日志</button>
+          </div>
+          <div class="hint" id="syncActionHint" style="margin-top:6px"></div>
+        </div>
+
+        <div class="field" style="margin-top:12px"><label>自定义服务名称</label><input id="cLabel" placeholder="我的模型服务" /></div>
+        <div class="field"><label>服务地址</label><input id="cBase" placeholder="https://..." /></div>
+        <div class="field"><label>模型名</label><input id="cModel" placeholder="model-name" /></div>
+        <div class="field"><label>访问密钥</label><input id="cKey" type="password" placeholder="" /></div>
+        <button class="btn copper" onclick="addCustom()">接入并切换</button>
+      </details>
+    </aside>
+  </div>
+
+  <footer class="aux-bar">
+    <button class="aux-tab" type="button" data-aux="canvas" onclick="openAux('canvas')">工作流</button>
+    <button class="aux-tab" type="button" data-aux="hitl" onclick="openAux('hitl')">审批中心</button>
+    <button class="aux-tab" type="button" data-aux="traces" onclick="openAux('traces')">运行记录</button>
+    <button class="aux-tab" type="button" data-aux="sync" onclick="openAux('sync');refreshSyncLogs()">同步日志</button>
+    <button class="aux-tab" type="button" data-aux="node" onclick="openAux('node')">节点详情</button>
+    <span style="flex:1"></span>
+    <button class="btn ghost" type="button" onclick="closeAux()">收起</button>
+  </footer>
+</div>
+
+<div class="aux-drawer" id="auxDrawer">
+  <div class="aux-drawer-head">
+    <strong id="auxTitle">辅面板</strong>
+    <button class="btn ghost" type="button" onclick="closeAux()">关闭</button>
+  </div>
+  <div class="aux-drawer-body">
+    <div id="auxCanvas" style="display:none">
+      <section class="canvas-wrap">
+        <div class="canvas" id="canvas"><svg class="wires" id="wires"></svg></div>
+      </section>
+    </div>
+    <aside class="inspector" id="auxInspector">
+      <div class="dock-tabs" style="display:none">
+        <button class="dock-tab on" data-dock="hitl" onclick="focusDock('hitl')">审批</button>
+        <button class="dock-tab" data-dock="traces" onclick="focusDock('traces')">历史</button>
+        <button class="dock-tab" data-dock="projects" onclick="focusDock('projects')">推荐项目</button>
+        <button class="dock-tab" data-dock="node" onclick="focusDock('node')">节点</button>
+      </div>
+      <div class="dock-panel on" id="dockHitl">
+        <h3>审批中心</h3>
+        <div class="hint" style="margin-bottom:8px">待审批任务点此打开。</div>
+        <div id="hitlBox" class="empty">暂无待审批</div>
+      </div>
+      <div class="dock-panel" id="dockTraces">
+        <h3>运行记录</h3>
+        <div id="traceBox"></div>
+      </div>
+      <div class="dock-panel" id="dockSync">
+        <h3>抓取同步日志</h3>
+        <div class="hint" style="margin-bottom:8px">显示定时/手动增量同步的耗时、数量与错误。</div>
+        <div class="row" style="gap:6px;margin-bottom:8px">
+          <button class="btn ghost" type="button" onclick="refreshSyncLogs()">刷新日志</button>
+          <button class="btn copper" type="button" onclick="runIncrementalSyncNow()">立即同步</button>
+        </div>
+        <div id="syncLogBox" class="empty">暂无同步记录</div>
+      </div>
+      <div class="dock-panel" id="dockProjects" style="display:none!important"></div>
+      <div class="dock-panel" id="dockNode">
+        <h3 id="nodeMeta">选择工作流中的节点</h3>
+        <div class="row" style="margin-bottom:8px">
+          <button class="btn ghost" data-tab="in" onclick="setTab('in')">输入</button>
+          <button class="btn ghost" data-tab="out" onclick="setTab('out')">输出</button>
+          <button class="btn ghost" data-tab="bind" onclick="setTab('bind')">绑定</button>
+          <button class="btn ghost" data-tab="edit" onclick="setTab('edit')">编辑</button>
+        </div>
+        <div id="ioView"></div>
+        <div id="bindEditor" style="display:none"></div>
+        <div id="editor" style="display:none">
+          <div class="field"><label>文本</label><textarea id="inText"></textarea></div>
+          <div class="row">
+            <button class="btn" onclick="addBlockToDraft()">加入输入草稿</button>
+            <button class="btn" onclick="clearDraft()">清空草稿</button>
+          </div>
+          <label class="check"><input type="checkbox" id="cascade" /> 级联重跑下游</label>
+          <label class="check"><input type="checkbox" id="genVisual" checked /> 尝试 Agnes 生图</label>
+          <div class="field" style="margin-top:8px">
+            <label>节点状态干预</label>
+            <select id="nodeStatusSelect">
+              <option value="idle">idle 空闲</option>
+              <option value="waiting">waiting 等待</option>
+              <option value="running">running 运行中</option>
+              <option value="success">success 成功</option>
+              <option value="failed">failed 失败</option>
+              <option value="skipped">skipped 跳过</option>
+            </select>
+          </div>
+          <div class="row">
+            <button class="btn ghost" onclick="applyNodeStatus()">应用节点状态</button>
+            <button class="btn signal" onclick="saveAndRerun()">保存输入并重跑此节点</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="hitlModal" class="modal-mask" style="display:none" onclick="if(event.target===this)closeHitlModal()">
+  <div class="modal" id="hitlModalBody"></div>
+</div>
+
+<script>
+
+/** 流水线阶段：热点→商机→可落地→交接 */
+function goStage(name){
+  const map = {hot:"stageHot", opp:"stageOpp", land:"stageLand", hand:"stageHand"};
+  const id = map[name] || "stageHot";
+  document.querySelectorAll(".stage").forEach(el => el.classList.toggle("on", el.id === id));
+  document.querySelectorAll(".pipe-step").forEach(el => el.classList.toggle("on", el.dataset.stage === name));
+  if (name === "hot") loadHotspotLanes(false, false);
+  if (name === "land") loadRecommendedProjects(false);
+  if (name === "hand") loadPaperclipIssues();
+  try { localStorage.setItem("lf_stage", name); } catch (_) {}
+}
+function openAux(which){
+  const drawer=$('auxDrawer');
+  if(!drawer) return;
+  drawer.classList.add('open');
+  document.querySelectorAll('.aux-tab').forEach(el=>el.classList.toggle('on', el.dataset.aux===which));
+  const canvas=$('auxCanvas');
+  const insp=$('auxInspector');
+  if(which==='canvas'){
+    if(canvas) canvas.style.display='block';
+    if(insp) insp.style.display='none';
+    $('auxTitle').textContent='工作流';
+    try{ renderGraph(); }catch(_){}
+  } else {
+    if(canvas) canvas.style.display='none';
+    if(insp) insp.style.display='block';
+    const map={hitl:'审批中心',traces:'运行记录',sync:'同步日志',node:'节点详情',projects:'推荐项目'};
+    $('auxTitle').textContent=map[which]||'辅面板';
+    focusDock(which==='projects'?'hitl':which);
+  }
+}
+function closeAux(){
+  const drawer=$('auxDrawer');
+  if(drawer) drawer.classList.remove('open');
+  document.querySelectorAll('.aux-tab').forEach(el=>el.classList.remove('on'));
+}
+function reloadEmbed(id, src){
+  const el=$(id); if(!el) return; el.src=src||el.src;
+}
+async function loadPaperclipIssues(){
+  const box=$("pcIssueBox");
+  const detail=$("landingTaskDetail");
+  if(box) box.innerHTML='<div class="skeleton"></div><div class="skeleton"></div>';
+  const keepId = window.__selectedLandingTaskId || "";
+  try{
+    const q = ($("taskSearchQ")?.value || "").trim();
+    const status = ($("taskStatusFilter")?.value || "").trim();
+    const qs = new URLSearchParams({ limit: "40", q, status });
+    const data=await api(`/api/landing-tasks?${qs.toString()}`);
+    const items=data.items||[];
+    window.__landingTasks=items;
+    const statusEl=$("paperclipHandoffStatus");
+    if(statusEl && !String(statusEl.innerHTML||"").includes("issue")){
+      statusEl.textContent = `共 ${data.count ?? items.length} 条任务` + (q || status ? "（已筛选）" : "");
+    }
+    if(!items.length){
+      if(box) box.innerHTML='<div class="empty-state">没有匹配的任务。可点「新建任务」或「从商机生成」。</div>';
+      if(detail) detail.innerHTML="";
+      return;
+    }
+    if(box) box.innerHTML=items.map((it,i)=>{
+      const kids=(it.children||[]).map(c=>{
+        const st=escapeHtml(c.status||"todo");
+        return `<li><span class="child-st ${st}">${st}</span>${escapeHtml(c.title||"")}</li>`;
+      }).join("");
+      const sel = (keepId && it.id===keepId) ? " selected" : "";
+      const idLit = JSON.stringify(String(it.id||""));
+      return `<div class="issue-row${sel}" onclick="showLandingTask(${i})">
+        <b>${escapeHtml(it.title||"—")}</b>
+        <div class="meta"><span class="st-chip ${escapeHtml(it.status||"todo")}">${escapeHtml(it.status||"todo")}</span>
+          ${it.industry?` · ${escapeHtml(it.industry)}`:""}
+          ${it.topic?` · ${escapeHtml(String(it.topic).slice(0,40))}`:""}
+        </div>
+        ${kids?`<ul>${kids}</ul>`:""}
+        <div class="task-actions" onclick="event.stopPropagation()">
+          <button class="btn ghost" type="button" onclick="showLandingTask(${i})">查看/编辑</button>
+          <button class="btn" type="button" onclick='deleteLandingTask(${idLit})'>删除</button>
+        </div>
+      </div>`;
+    }).join("");
+    if(keepId){
+      const idx=items.findIndex(t=>t.id===keepId);
+      if(idx>=0) showLandingTask(idx);
+      else if(detail) detail.innerHTML="";
+    }
+  }catch(e){
+    if(box) box.innerHTML=`<div class="error-state">任务加载失败：${escapeHtml(e.message||String(e))}</div>`;
+  }
+}
+
+/**
+ * 展开/收起新建任务表单。
+ * @param {boolean} open 是否打开
+ */
+function toggleLandingCreate(open){
+  const panel=$("landingCreatePanel");
+  if(!panel) return;
+  panel.classList.toggle("open", !!open);
+  if(open){
+    const topic=($("topic")?.value||"").trim();
+    if($("newTaskTopic") && !$("newTaskTopic").value) $("newTaskTopic").value=topic;
+    if($("newTaskIndustry") && !$("newTaskIndustry").value) $("newTaskIndustry").value=getIndustryValue()||"";
+    $("newTaskTopic")?.focus();
+  }
+}
+
+/**
+ * 手动新建落地任务。
+ */
+async function createLandingTaskManual(){
+  const topic=($("newTaskTopic")?.value||"").trim();
+  if(!topic){ alert("请填写主题"); return; }
+  const statusEl=$("paperclipHandoffStatus");
+  if(statusEl) statusEl.textContent="正在创建…";
+  try{
+    const res=await api("/api/landing-tasks",{
+      method:"POST",
+      body:JSON.stringify({
+        topic,
+        title:($("newTaskTitle")?.value||"").trim(),
+        industry:($("newTaskIndustry")?.value||"").trim(),
+        context:($("newTaskContext")?.value||"").trim(),
+        reuse_same_title:false,
+      }),
+    });
+    toggleLandingCreate(false);
+    ["newTaskTopic","newTaskTitle","newTaskIndustry","newTaskContext"].forEach(id=>{ if($(id)) $(id).value=""; });
+    window.__selectedLandingTaskId = res.task?.id || "";
+    if(statusEl) statusEl.textContent = res.reused ? "已更新同名任务" : "已创建任务";
+    await loadPaperclipIssues();
+  }catch(e){
+    if(statusEl) statusEl.innerHTML=`<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 删除落地任务。
+ * @param {string} taskId 任务 id
+ */
+async function deleteLandingTask(taskId){
+  if(!taskId) return;
+  if(!confirm("确认删除该落地任务及其子项？")) return;
+  try{
+    await api(`/api/landing-tasks/${encodeURIComponent(taskId)}`,{ method:"DELETE" });
+    if(window.__selectedLandingTaskId===taskId){
+      window.__selectedLandingTaskId="";
+      const detail=$("landingTaskDetail");
+      if(detail) detail.innerHTML="";
+    }
+    await loadPaperclipIssues();
+  }catch(e){
+    alert(e.message||String(e));
+  }
+}
+
+function showLandingTask(i){
+  const detail=$("landingTaskDetail");
+  const it=(window.__landingTasks||[])[i];
+  if(!detail||!it) return;
+  window.__selectedLandingTaskId = it.id || "";
+  document.querySelectorAll("#pcIssueBox .issue-row").forEach((el,idx)=>el.classList.toggle("selected", idx===i));
+  const tidLit = JSON.stringify(String(it.id||""));
+  const kids=(it.children||[]).map(c=>{
+    const cidLit=JSON.stringify(String(c.id||""));
+    const st=escapeHtml(c.status||"todo");
+    return `<div class="child-edit-row">
+      <select onchange='patchLandingChild(${tidLit},${cidLit},{status:this.value})'>
+        <option value="todo"${st==="todo"?" selected":""}>todo</option>
+        <option value="doing"${st==="doing"?" selected":""}>doing</option>
+        <option value="done"${st==="done"?" selected":""}>done</option>
+        <option value="blocked"${st==="blocked"?" selected":""}>blocked</option>
+      </select>
+      <input type="text" value="${escapeHtml(c.title||"")}" onkeydown='if(event.key==="Enter"){patchLandingChild(${tidLit},${cidLit},{title:this.value})}' />
+      <button class="btn ghost" type="button" onclick='patchLandingChild(${tidLit},${cidLit},{title:this.previousElementSibling.value})'>保存</button>
+      <button class="btn" type="button" onclick='removeLandingChild(${tidLit},${cidLit})'>删除</button>
+    </div>`;
+  }).join("");
+  detail.innerHTML=`<div class="panel-card" style="margin:0;box-shadow:none;color:var(--text)">
+    <h3>任务详情 · 编辑</h3>
+    <div class="field"><label>标题</label><input id="editTaskTitle" value="${escapeHtml(it.title||"")}" /></div>
+    <div class="field"><label>主题</label><input id="editTaskTopic" value="${escapeHtml(it.topic||"")}" /></div>
+    <div class="field"><label>行业</label><input id="editTaskIndustry" value="${escapeHtml(it.industry||"")}" /></div>
+    <div class="field"><label>状态</label>
+      <select id="editTaskStatus">
+        ${["todo","doing","done","blocked","cancelled"].map(s=>`<option value="${s}"${(it.status||"todo")===s?" selected":""}>${s}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field"><label>备注</label><textarea id="editTaskContext" rows="2">${escapeHtml(it.context||"")}</textarea></div>
+    <div class="field"><label>落地方案</label><textarea id="editTaskPlan" rows="5">${escapeHtml(it.plan_markdown||"")}</textarea></div>
+    <div class="row" style="gap:6px;margin:8px 0;flex-wrap:wrap">
+      <button class="btn signal" type="button" onclick='saveLandingTask(${tidLit})'>保存修改</button>
+      <button class="btn" type="button" onclick='deleteLandingTask(${tidLit})'>删除任务</button>
+    </div>
+    <h3 style="margin-top:14px">子任务</h3>
+    ${kids||`<div class="hint">暂无子任务</div>`}
+    <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">
+      <input id="newChildTitle" placeholder="新子任务标题" style="flex:1;min-width:160px" />
+      <button class="btn ghost" type="button" onclick='addLandingChild(${tidLit})'>添加子任务</button>
+    </div>
+  </div>`;
+}
+
+/**
+ * 保存父任务编辑。
+ * @param {string} taskId 任务 id
+ */
+async function saveLandingTask(taskId){
+  try{
+    await api(`/api/landing-tasks/${encodeURIComponent(taskId)}`,{
+      method:"PATCH",
+      body:JSON.stringify({
+        title:($("editTaskTitle")?.value||"").trim(),
+        topic:($("editTaskTopic")?.value||"").trim(),
+        industry:($("editTaskIndustry")?.value||"").trim(),
+        status:$("editTaskStatus")?.value||"todo",
+        context:$("editTaskContext")?.value||"",
+        plan_markdown:$("editTaskPlan")?.value||"",
+      }),
+    });
+    window.__selectedLandingTaskId=taskId;
+    await loadPaperclipIssues();
+  }catch(e){ alert(e.message||String(e)); }
+}
+
+/**
+ * 新增子任务。
+ * @param {string} taskId 父任务 id
+ */
+async function addLandingChild(taskId){
+  const title=($("newChildTitle")?.value||"").trim();
+  if(!title){ alert("请填写子任务标题"); return; }
+  try{
+    await api(`/api/landing-tasks/${encodeURIComponent(taskId)}/children`,{
+      method:"POST",
+      body:JSON.stringify({ title, status:"todo" }),
+    });
+    window.__selectedLandingTaskId=taskId;
+    await loadPaperclipIssues();
+  }catch(e){ alert(e.message||String(e)); }
+}
+
+/**
+ * 更新子任务。
+ * @param {string} taskId 父任务 id
+ * @param {string} childId 子任务 id
+ * @param {{title?:string,status?:string}} patch 补丁
+ */
+async function patchLandingChild(taskId, childId, patch){
+  try{
+    await api(`/api/landing-tasks/${encodeURIComponent(taskId)}/children/${encodeURIComponent(childId)}`,{
+      method:"PATCH",
+      body:JSON.stringify(patch||{}),
+    });
+    window.__selectedLandingTaskId=taskId;
+    await loadPaperclipIssues();
+  }catch(e){ alert(e.message||String(e)); }
+}
+
+/**
+ * 删除子任务。
+ * @param {string} taskId 父任务 id
+ * @param {string} childId 子任务 id
+ */
+async function removeLandingChild(taskId, childId){
+  if(!confirm("删除该子任务？")) return;
+  try{
+    await api(`/api/landing-tasks/${encodeURIComponent(taskId)}/children/${encodeURIComponent(childId)}`,{
+      method:"DELETE",
+    });
+    window.__selectedLandingTaskId=taskId;
+    await loadPaperclipIssues();
+  }catch(e){ alert(e.message||String(e)); }
+}
+
+const $ = (id) => document.getElementById(id);
+let graph = null;
+let currentTrace = null;
+let selectedNode = null;
+let activeTab = "in";
+let addType = "text";
+let draftInputs = [];
+let pollTimer = null;
+let runEvents = [];
+let catalogs = { skills: [], rules: [], mcp: [] };
+let topicRec = { recommended: "", items: [], source: "", industry: null, industries: [] };
+let seenTopics = [];
+const NODE_AGENT = {
+  opportunity:"opportunity", business_model:"business_model",
+  redteam_model:"redteam", redteam_marketing:"redteam",
+  dev:"dev", deploy:"deploy", marketing:"marketing", flywheel:"flywheel",
+  hitl_model:"business_model", hitl_ads:"marketing", start:"opportunity"
+};
+
+const CHART_TIPS = {
+  abc: "A=1–2周可低成本验证；B=付费意愿与客单清晰；C=竞争缺口。三项等权，越高越好。",
+  five: "五维：需求真实性、市场切入、单位经济、护城河、执行止损。任一极弱会拖垮裁决。",
+  tam: "TAM=总市场；SAM=可服务市场；SOM=近期可拿份额。unknown/证据不足=模型未估到可靠数字，不是系统坏了。",
+  ue: "CAC=获客全成本；LTV=客户生命周期价值；贡献=扣交付后毛利。铁律 LTV≥3×CAC。",
+  verdict: "裁决仪表：强烈推荐/谨慎尝试/建议放弃。若与狩猎「强烈推荐」冲突，以审批中心的单位经济与合规结论为准（更严）。",
+  hunt: "狩猎结论偏「找机会」；穿透简报偏「算账+合规杀」。两边冲突时优先听简报。",
+};
+
+function tip(label, key){
+  const t = CHART_TIPS[key] || "";
+  return `<span class="tip" title="${escapeHtml(t)}">${escapeHtml(label)}</span>`;
+}
+
+function focusDock(name){
+  try {
+    if (name === "projects") { goStage("land"); return; }
+    if (["hitl","traces","sync","node"].includes(name)) {
+      const drawer = $("auxDrawer");
+      if (drawer && !drawer.classList.contains("open")) openAux(name);
+    }
+  } catch (_) {}
+  const map = {hitl:"dockHitl", traces:"dockTraces", sync:"dockSync", projects:"dockProjects", node:"dockNode"};
+  document.querySelectorAll(".dock-tab").forEach(el=>{
+    el.classList.toggle("on", el.getAttribute("data-dock")===name);
+  });
+  document.querySelectorAll(".dock-panel").forEach(el=>el.classList.remove("on"));
+  const id = map[name] || "dockHitl";
+  const panel = $(id);
+  if (panel) panel.classList.add("on");
+  if (name === "projects") loadRecommendedProjects(false);
+  if (name === "sync") refreshSyncLogs();
+  if (name === "hitl") {
+    const first = document.querySelector("#hitlBox .hitl-card");
+    // 保持列表可见即可
+  }
+}
+
+function renderProjectCards(items, opts){
+  if (!items?.length) return `<div class="empty">暂无推荐项目</div>`;
+  const o = opts || {};
+  const storeKey = o.storeKey || "__projectItems";
+  window[storeKey] = items;
+  const kindMap = {
+    github_repo: "GitHub 项目",
+    market_product: "已上线产品",
+    startup_news: "资讯(少用)",
+    startup_project: "创投项目",
+    discussion: "讨论",
+  };
+  const diffMap = {easy:"易", mid:"中", hard:"难"};
+  const trackMap = {saas:"SaaS", local:"本地", ai_tool:"AI", health:"健康", content:"内容", devtools:"开发", fintech:"金融", other:"其他"};
+  const bandMap = {under_5m:"<500万", "5m_50m":"500万-5千万", "50m_500m":"5千万-5亿", over_500m:">5亿"};
+  const skLit = String(storeKey).replace(/[^a-zA-Z0-9_]/g, "") || "__projectItems";
+  return items.map((p, idx)=>{
+    const kind = kindMap[p.kind] || p.source_label || p.kind || "项目";
+    const one = p.one_click_ready ? `<span class="badge pass">可一键/快速试用</span>` : `<span class="badge">对标参考</span>`;
+    const stars = p.stars!=null ? `<span class="badge">★ ${Math.round(p.stars)}</span>` : "";
+    const ind = p.industry ? `<span class="badge">${escapeHtml(String(p.industry))}</span>` : "";
+    const tr = p.track ? `<span class="badge">${escapeHtml(trackMap[p.track]||p.track)}</span>` : "";
+    const df = p.difficulty ? `<span class="badge">${escapeHtml(diffMap[p.difficulty]||p.difficulty)}</span>` : "";
+    const region = p.region && p.region!=="unknown" ? `<span class="badge">${escapeHtml(String(p.region))}</span>` : "";
+    const stage = p.funding_stage && p.funding_stage!=="unknown" ? `<span class="badge">${escapeHtml(String(p.funding_stage))}</span>` : "";
+    const amt = p.funding_amount_raw && p.funding_amount_raw!=="unknown"
+      ? `<span class="badge">${escapeHtml(String(p.funding_amount_raw))}</span>`
+      : (p.funding_band && bandMap[p.funding_band] ? `<span class="badge">${bandMap[p.funding_band]}</span>` : "");
+    const nature = p.company_nature && p.company_nature!=="unknown" ? `<span class="badge">${escapeHtml(String(p.company_nature))}</span>` : "";
+    const rel = p.relevance_score!=null
+      ? `<span class="badge ${Number(p.relevance_score)>=18?"pass":"warn"}">相关 ${Math.round(Number(p.relevance_score))}</span>`
+      : "";
+    const land = p.landable
+      ? `<span class="badge pass">可落地</span>`
+      : "";
+    const landRole = p.landable_role ? `<span class="badge">${escapeHtml(String(p.landable_role))}</span>` : "";
+    const role = p.portfolio_role ? `<span class="badge">${escapeHtml(String(p.portfolio_role))}</span>` : "";
+    const matched = (p.relevance_matched||[]).slice(0,4).map(t=>`<span class="badge">${escapeHtml(String(t))}</span>`).join("");
+    return `<div class="proj-card">
+      <a href="${escapeHtml(p.url||"#")}" target="_blank" rel="noopener">${escapeHtml(p.name||"—")}</a>
+      <div class="hint">${escapeHtml((p.summary||"").toString().slice(0,140))}</div>
+      ${p.landable_reason?`<div class="hint mono">${escapeHtml(String(p.landable_reason).slice(0,120))}</div>`:""}
+      <div class="proj-meta">
+        <span class="badge">${escapeHtml(kind)}</span>${one}${land}${landRole}${rel}${role}${stars}${ind}${tr}${df}${region}${stage}${amt}${nature}${matched}
+        <span class="badge">${escapeHtml(p.source_label||p.source||"")}</span>
+      </div>
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+        <button class="btn ghost" type="button" onclick="identifyThemeFromProject(${idx},'${skLit}')">识别商机主题</button>
+        <button class="btn signal" type="button" onclick="runWorkflowFromProject(${idx},'${skLit}')">跑商机工作流</button>
+        <button class="btn copper" type="button" onclick="findPortfolioFromProject(${idx},'${skLit}')">找项目组合</button>
+        <button class="btn" type="button" onclick="generateLandingPlanFromProject(${idx},'${skLit}')">生成落地方案</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/**
+ * 渲染商机挂钩的单项目 + 多项目组合 + 落地方案区。
+ * @param {object} pack recommended_projects 或 opportunity-portfolio 结果
+ * @param {object} [ctx] {topic, industry, opportunity_context}
+ */
+function renderOpportunityPortfolio(pack, ctx){
+  const portfolio = pack?.portfolio || pack || {};
+  const singles = (portfolio.singles || pack?.landable_items || pack?.items || []).filter(p => p.landable !== false);
+  const combos = portfolio.combos || [];
+  const plan = pack?.landing_plan || null;
+  window.__oppCtx = {
+    topic: (ctx && ctx.topic) || pack?.topic || portfolio.topic || ($("topic")?.value||""),
+    industry: (ctx && ctx.industry) || pack?.industry || portfolio.industry || "",
+    opportunity_context: (ctx && ctx.opportunity_context) || "",
+  };
+  window.__hitlPortfolio = portfolio;
+  window.__hitlProjectItems = singles;
+  let html = "";
+  if (pack?.note) html += `<div class="hint" style="margin-bottom:8px">${escapeHtml(pack.note)}</div>`;
+  if (singles.length) {
+    html += `<div class="hint" style="margin:6px 0">可落地项目（AI/规则已筛）</div>`;
+    html += renderProjectCards(singles, {storeKey:"__hitlProjectItems"});
+  } else {
+    html += `<div class="empty-state">暂无匹配当前商机的可落地项目。可先在「看热点」用 AI 提炼商机，或点「更新项目库」后再试。</div>`;
+  }
+  if (combos.length) {
+    html += `<div class="hint" style="margin:12px 0 6px">推荐项目组合（角色互补，一键生成方案）</div>`;
+    html += combos.map((c, ci)=>{
+      const items = c.items || [];
+      const names = items.map(p=>escapeHtml(p.name||"—")).join(" + ");
+      return `<div class="combo-card">
+        <h5>${escapeHtml(c.title||("组合 "+(ci+1)))}</h5>
+        <div class="hint">${escapeHtml(c.rationale||"")}</div>
+        <div class="hint" style="margin:6px 0">${names}</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn signal" type="button" onclick="generateLandingPlanFromCombo(${ci})">一键生成落地方案</button>
+        </div>
+        ${renderProjectCards(items, {storeKey:"__comboItems_"+ci})}
+      </div>`;
+    }).join("");
+  }
+  html += `<div id="landingPlanBox">${plan?.markdown ? renderLandingPlanBlock(plan) : `<div class="hint">选择单项目或组合后点「生成落地方案」</div>`}</div>`;
+  return html;
+}
+
+function renderLandingPlanBlock(plan){
+  const md = plan?.markdown || plan?.plan?.markdown || "";
+  const method = plan?.method || "";
+  const title = plan?.plan?.title || plan?.topic || "落地方案";
+  return `<div style="margin-top:10px">
+    <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
+      <h4 style="margin:0">${escapeHtml(title)} ${method?`<span class="badge">${escapeHtml(method)}</span>`:""}</h4>
+      <button class="btn ghost" type="button" onclick="copyLandingPlan()">复制方案</button>
+    </div>
+    <div class="landing-plan-box" id="landingPlanMd">${escapeHtml(md)}</div>
+  </div>`;
+}
+
+function copyLandingPlan(){
+  const el = $("landingPlanMd");
+  const text = el?.textContent || "";
+  if (!text) return;
+  navigator.clipboard?.writeText(text).then(()=>alert("已复制落地方案")).catch(()=>{});
+}
+
+function _projectAt(idx, storeKey){
+  const key = storeKey || "__projectItems";
+  const items = window[key] || window.__projectItems || [];
+  return items[idx] || null;
+}
+
+async function generateLandingPlanFromProject(idx, storeKey){
+  const p = _projectAt(idx, storeKey);
+  if (!p) return;
+  const ctx = window.__oppCtx || {};
+  const topic = ctx.topic || ($("topic")?.value||"").trim() || p.name || "";
+  let box = $("landingPlanBox");
+  if (!box) {
+    const host = $("projectBox") || $("hitlProjectBox") || $("projectActionHint");
+    if (host) {
+      const wrap = document.createElement("div");
+      wrap.id = "landingPlanBox";
+      host.appendChild(wrap);
+      box = wrap;
+    }
+  }
+  if (box) box.innerHTML = `<div class="hint">正在生成落地方案…</div>`;
+  try {
+    const res = await api("/api/research/landing-plan", {
+      method: "POST",
+      body: JSON.stringify({
+        topic,
+        industry: ctx.industry || "",
+        opportunity_context: ctx.opportunity_context || "",
+        combo_title: "单项目落地",
+        projects: [p],
+        use_ai: true,
+      }),
+    });
+    window.__lastLandingPlan = res;
+    if (box) box.innerHTML = renderLandingPlanBlock(res);
+  } catch (e) {
+    if (box) box.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function generateLandingPlanFromCombo(ci){
+  const portfolio = window.__hitlPortfolio || {};
+  const combo = (portfolio.combos || [])[ci];
+  if (!combo?.items?.length) return;
+  const ctx = window.__oppCtx || {};
+  const topic = ctx.topic || ($("topic")?.value||"").trim();
+  const box = $("landingPlanBox");
+  if (box) box.innerHTML = `<div class="hint">正在为「${escapeHtml(combo.title||"组合")}」生成落地方案…</div>`;
+  try {
+    const res = await api("/api/research/landing-plan", {
+      method: "POST",
+      body: JSON.stringify({
+        topic: topic || "商机落地",
+        industry: ctx.industry || "",
+        opportunity_context: ctx.opportunity_context || "",
+        combo_title: combo.title || "",
+        projects: combo.items,
+        use_ai: true,
+      }),
+    });
+    window.__lastLandingPlan = res;
+    if (box) box.innerHTML = renderLandingPlanBlock(res);
+  } catch (e) {
+    if (box) box.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function loadOpportunityPortfolio(topic, industry, opportunity_context){
+  return api("/api/research/opportunity-portfolio", {
+    method: "POST",
+    body: JSON.stringify({
+      topic: topic || "SaaS AI",
+      industry: industry || "",
+      opportunity_context: opportunity_context || "",
+      generate_plan: true,
+    }),
+  });
+}
+
+window.__hotLanes = [];
+window.__hotLaneId = "platforms";
+window.__hotPlatforms = [];
+window.__hotPlatformId = "";
+window.__hotItems = [];
+window.__hotSelected = new Set();
+window.__hotOpportunities = [];
+
+/**
+ * 填充热点行业下拉（创投标准「所属行业」；默认不限=全网）。
+ * @param {Array} items 行业列表
+ */
+function fillHotIndustryFilter(items){
+  const sel = $("hotIndustry");
+  if (!sel) return;
+  const cur = sel.value;
+  const rows = items || [];
+  sel.innerHTML = `<option value="">不限（全网）</option>` + rows.map(it =>
+    `<option value="${escapeHtml(it.name||"")}">${escapeHtml(it.name||"")}</option>`
+  ).join("") + `<option value="__custom__">自定义…</option>`;
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+  else sel.value = "";
+  toggleHotCustomIndustryInput();
+}
+
+/**
+ * 加载看热点行业目录（创投所属行业）。
+ */
+async function loadHotIndustryCatalog(){
+  try {
+    const data = await api("/api/themes/industries?catalog=cn_vc");
+    fillHotIndustryFilter(data.items || []);
+  } catch (_) {
+    fillHotIndustryFilter([]);
+  }
+}
+
+/**
+ * 热点页行业值（不读定商机下拉）。
+ * @returns {string}
+ */
+function getHotIndustryValue(){
+  const sel = $("hotIndustry");
+  if (!sel) return "";
+  if (sel.value === "__custom__") return ($("hotIndustryCustom")?.value || "").trim();
+  return (sel.value || "").trim();
+}
+
+function toggleHotCustomIndustryInput(){
+  const custom = $("hotIndustryCustom");
+  const sel = $("hotIndustry");
+  if (!custom || !sel) return;
+  const show = sel.value === "__custom__";
+  custom.style.display = show ? "block" : "none";
+  if (show) custom.focus();
+}
+
+function onHotIndustryChange(){
+  toggleHotCustomIndustryInput();
+  if ($("hotIndustry")?.value === "__custom__") return;
+  loadHotspotLanes(false, false);
+}
+
+async function commitHotCustomIndustry(){
+  const name = ($("hotIndustryCustom")?.value || "").trim();
+  if (!name) return;
+  const pack = $("themePack")?.value || "local-service-leadgen";
+  try {
+    await api("/api/themes/industries/custom", {
+      method: "POST",
+      body: JSON.stringify({ theme_pack: pack, name }),
+    });
+    await loadHotIndustryCatalog();
+    if ($("hotIndustry")) {
+      // 自定义项若不在标准目录，临时插入
+      const sel = $("hotIndustry");
+      if (![...sel.options].some(o => o.value === name)) {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.insertBefore(opt, sel.options[sel.options.length - 1]);
+      }
+      sel.value = name;
+    }
+    toggleHotCustomIndustryInput();
+    await loadHotspotLanes(false, false);
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+/**
+ * 刷新热点库聚合统计文案。
+ */
+async function refreshHotLibStats(){
+  const el = $("hotLibStats");
+  if (!el) return;
+  try {
+    const st = await api("/api/research/hotspots/library");
+    const lanes = (window.__hotLanes || []).map(l => `${l.label}${l.count||0}`).slice(0,5).join(" · ");
+    el.textContent = `热点库 ${st.count||0} 条` + (lanes ? ` · ${lanes}` : "");
+  } catch (_) {
+    el.textContent = "";
+  }
+}
+
+/**
+ * 预热多行业热点入库。
+ */
+async function warmHotspots(){
+  const hint = $("hotHint");
+  if (hint) hint.textContent = "正在预热全网热搜，请稍候…";
+  try {
+    const res = await api("/api/research/hotspots/warm?limit_per_source=12", { method: "POST" });
+    const total = res.upsert?.total ?? res.stats?.count ?? 0;
+    const added = res.upsert?.added ?? 0;
+    if (hint) hint.textContent = `预热完成：库内 ${total} 条（新增 ${added}）`;
+    await refreshHotLibStats();
+    await loadHotspotLanes(false, false);
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 加载多维热点通道。
+ * @param {boolean} forceRefresh 是否同步外网热搜/创投
+ * @param {boolean} includeAi 是否用 LLM 加深 SeekMoney/痛点/AI重构（规则通道默认已有内容）
+ */
+async function loadHotspotLanes(forceRefresh, includeAi){
+  const box = $("hotBox");
+  const hint = $("hotHint");
+  if (box) box.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
+  try {
+    const industry = (typeof getHotIndustryValue === "function" ? getHotIndustryValue() : "") || "";
+    const q = new URLSearchParams({
+      industry,
+      per_platform: "30",
+      refresh: forceRefresh ? "true" : "false",
+      include_ai: includeAi ? "true" : "false",
+    });
+    const data = await api(`/api/research/hotspots/lanes?${q}`);
+    window.__hotLanes = data.lanes || [];
+    window.__hotSelected = new Set();
+    if (!window.__hotLaneId || !window.__hotLanes.some(l => l.id === window.__hotLaneId)) {
+      window.__hotLaneId = window.__hotLanes[0]?.id || "platforms";
+    }
+    const platLane = window.__hotLanes.find(l => l.id === "platforms");
+    window.__hotPlatforms = platLane?.platforms || [];
+    if (!window.__hotPlatformId || !window.__hotPlatforms.some(p => p.id === window.__hotPlatformId)) {
+      window.__hotPlatformId = window.__hotPlatforms[0]?.id || "";
+    }
+    renderHotLaneTabs();
+    renderHotPlatformTabs();
+    renderHotBox();
+    if (hint) {
+      const parts = (data.lanes || []).map(l => `${l.label}${l.count||0}`).join(" · ");
+      const scope = industry ? `聚焦「${industry}」 · ` : "全网 · ";
+      hint.textContent = scope + (includeAi ? "已 AI 加深 · " : (forceRefresh ? "已同步 · " : "")) + parts;
+    }
+    refreshHotLibStats();
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="error-state">${escapeHtml(e.message||String(e))}</div>`;
+  }
+}
+
+/** 兼容旧调用 */
+async function loadHotspotsByPlatform(forceRefresh){
+  return loadHotspotLanes(!!forceRefresh, false);
+}
+async function loadHotspots(forceRefresh){
+  return loadHotspotLanes(!!forceRefresh, false);
+}
+
+/**
+ * 渲染一级通道页签。
+ */
+function renderHotLaneTabs(){
+  const tabs = $("hotLaneTabs");
+  if (!tabs) return;
+  const lanes = window.__hotLanes || [];
+  tabs.innerHTML = lanes.map(l => {
+    const on = l.id === window.__hotLaneId ? "on" : "";
+    return `<button type="button" class="hot-platform-tab ${on}" onclick="switchHotLane('${escapeHtml(l.id)}')">
+      ${escapeHtml(l.label||l.id)}<span class="cnt">${l.count||0}</span>
+    </button>`;
+  }).join("");
+}
+
+/**
+ * 切换一级通道。
+ * @param {string} id 通道 id
+ */
+function switchHotLane(id){
+  window.__hotLaneId = id || "platforms";
+  window.__hotSelected = new Set();
+  renderHotLaneTabs();
+  renderHotPlatformTabs();
+  renderHotBox();
+}
+
+/**
+ * 渲染平台二级页签（仅「平台热搜」通道显示）。
+ */
+function renderHotPlatformTabs(){
+  const tabs = $("hotPlatformTabs");
+  if (!tabs) return;
+  const show = window.__hotLaneId === "platforms";
+  tabs.style.display = show ? "flex" : "none";
+  if (!show) return;
+  const plats = window.__hotPlatforms || [];
+  if (!plats.length) {
+    tabs.innerHTML = "";
+    return;
+  }
+  tabs.innerHTML = plats.map(p => {
+    const on = p.id === window.__hotPlatformId ? "on" : "";
+    return `<button type="button" class="hot-platform-tab ${on}" onclick="switchHotPlatform('${escapeHtml(p.id)}')">
+      ${escapeHtml(p.label||p.id)}<span class="cnt">${p.count||0}</span>
+    </button>`;
+  }).join("");
+}
+
+/**
+ * 切换平台页签。
+ * @param {string} id 平台 id
+ */
+function switchHotPlatform(id){
+  window.__hotPlatformId = id || "";
+  window.__hotSelected = new Set();
+  renderHotPlatformTabs();
+  renderHotBox();
+}
+
+/**
+ * 当前列表要展示的条目。
+ * @returns {Array}
+ */
+function currentHotListItems(){
+  const lane = (window.__hotLanes || []).find(l => l.id === window.__hotLaneId);
+  if (!lane) return [];
+  if (lane.kind === "platforms" || lane.id === "platforms") {
+    const plats = window.__hotPlatforms || [];
+    const cur = plats.find(p => p.id === window.__hotPlatformId) || plats[0];
+    const items = [...(cur?.items || [])];
+    // 按名次升序，其次热度降序
+    items.sort((a, b) => {
+      const ra = Number(a?.meta?.rank || 9999);
+      const rb = Number(b?.meta?.rank || 9999);
+      if (ra !== rb) return ra - rb;
+      return Number(b?.heat || 0) - Number(a?.heat || 0);
+    });
+    return items;
+  }
+  return lane.items || [];
+}
+
+/**
+ * 汇总各通道条目（供 AI）。
+ * @returns {Array}
+ */
+function allPlatformHotItems(){
+  const out = [];
+  for (const lane of (window.__hotLanes || [])) {
+    if (lane.kind === "platforms" || lane.id === "platforms") {
+      for (const p of (lane.platforms || window.__hotPlatforms || [])) {
+        for (const h of (p.items || [])) out.push(h);
+      }
+    } else {
+      for (const h of (lane.items || [])) out.push(h);
+    }
+  }
+  return out;
+}
+
+function renderHotBox(){
+  const box = $("hotBox");
+  if (!box) return;
+  const lane = (window.__hotLanes || []).find(l => l.id === window.__hotLaneId);
+  const items = currentHotListItems();
+  window.__hotItems = items;
+  if (!items.length) {
+    const tip = (lane && (lane.id === "seekmoney" || lane.id === "pain" || lane.id === "ai_rebuild" || lane.id === "vc" || lane.id === "platforms"))
+      ? (getHotIndustryValue()
+          ? `「${getHotIndustryValue()}」下暂无匹配内容。可换行业、点「同步热搜与创投」，或改回「不限（全网）」。`
+          : "暂无数据。可点「同步热搜与创投」。")
+      : "暂无数据。可点「同步热搜与创投」。";
+    const ref = lane?.ref ? `<div class="meta" style="margin-top:6px">方法参考：${escapeHtml(lane.ref)}</div>` : "";
+    box.innerHTML = `<div class="empty-state">${tip}${ref}</div>`;
+    return;
+  }
+  const desc = lane?.desc ? `<div class="hint" style="margin-bottom:8px">${escapeHtml(lane.desc)}${lane.ref?` · <a href="${escapeHtml(lane.ref)}" target="_blank" rel="noreferrer">SeekMoney</a>`:""}</div>` : "";
+  const isSeek = lane && lane.id === "seekmoney";
+  box.innerHTML = desc + items.map((h, i)=>{
+    const on = window.__hotSelected?.has(i) ? "on" : "";
+    const heat = h.heat!=null ? `热度 ${Math.round(Number(h.heat))}` : "";
+    const rank = h.meta?.rank ? `第${h.meta.rank}名` : "";
+    const ind = h.meta?.industry || h.industry || "";
+    const basis = h.meta?.industry_basis ? `依据 ${h.meta.industry_basis}` : "";
+    const toolInd = h.meta?.tool_industry && h.meta.tool_industry !== ind ? `工具侧 ${h.meta.tool_industry}` : "";
+    const pay = h.meta?.who_pays ? `付费方 ${h.meta.who_pays}` : "";
+    const scores = (isSeek && (h.meta?.demand_score!=null || h.meta?.priority_score!=null))
+      ? `D${h.meta.demand_score??"—"}/M${h.meta.market_score??"—"}/C${h.meta.competition_score??"—"} · P${h.meta.priority_score??"—"}`
+      : "";
+    const quality = isSeek && h.meta?.data_quality ? `质量 ${h.meta.data_quality}` : "";
+    const meta = [rank, ind, toolInd, pay, scores, quality, basis, heat].filter(Boolean).join(" · ");
+    let snipHtml = "";
+    if (isSeek && (h.meta?.surface_pain || h.meta?.root_cause || h.meta?.mvp_2w)) {
+      const bits = [
+        h.meta.surface_pain ? `痛点：${h.meta.surface_pain}` : "",
+        h.meta.root_cause ? `根因：${h.meta.root_cause}` : "",
+        h.meta.mvp_2w ? `两周：${h.meta.mvp_2w}` : "",
+      ].filter(Boolean);
+      snipHtml = `<div class="meta" style="margin-top:4px;white-space:normal;font-family:inherit">${escapeHtml(bits.join(" · ").slice(0,180))}</div>`;
+    } else if (h.snippet) {
+      snipHtml = `<div class="meta" style="margin-top:4px;white-space:normal;font-family:inherit">${escapeHtml(String(h.snippet).slice(0,120))}</div>`;
+    }
+    return `<div class="hot-item ${on}" onclick="toggleHot(${i})">
+      <b>${escapeHtml((h.title||"").toString().slice(0,80))}</b>
+      <div class="meta">${escapeHtml(meta)}</div>
+      ${snipHtml}
+    </div>`;
+  }).join("");
+}
+
+function toggleHot(i){
+  if (!window.__hotSelected) window.__hotSelected = new Set();
+  if (window.__hotSelected.has(i)) window.__hotSelected.delete(i);
+  else window.__hotSelected.add(i);
+  const h = (window.__hotItems||[])[i];
+  if (h?.title && $("topic")) $("topic").value = String(h.title).replace(/^(商机：|线索：|痛点：|AI重构：)/, "");
+  renderHotBox();
+}
+
+/**
+ * AI 从多通道热点提炼可落地商机。
+ */
+async function extractHotOpportunities(){
+  const hint = $("hotOppHint");
+  const box = $("hotOppBox");
+  if (box) box.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div>`;
+  if (hint) hint.textContent = "AI 正在综合热搜 / 创投 / 线索通道提炼可落地商机…";
+  try {
+    let selected = [...(window.__hotSelected||[])].map(i => (window.__hotItems||[])[i]).filter(Boolean);
+    let payloadHotspots = selected.length ? selected : allPlatformHotItems().slice(0, 80);
+    if (!payloadHotspots.length) {
+      await loadHotspotLanes(false, false);
+      payloadHotspots = allPlatformHotItems().slice(0, 80);
+    }
+    if (!payloadHotspots.length) {
+      throw new Error("暂无热点，请先同步热搜与创投");
+    }
+    const industry = (typeof getHotIndustryValue === "function" ? getHotIndustryValue() : "")
+      || (typeof getIndustryValue === "function" ? getIndustryValue() : "")
+      || "";
+    const theme_pack = $("themePack")?.value || "";
+    const res = await api("/api/research/hotspot-opportunities", {
+      method: "POST",
+      body: JSON.stringify({
+        hotspots: payloadHotspots,
+        industry,
+        theme_pack,
+        limit: 5,
+      }),
+    });
+    window.__hotOpportunities = res.opportunities || [];
+    renderHotOpportunities();
+    if (hint) {
+      const n = res.count || window.__hotOpportunities.length;
+      const plats = (res.platforms_covered || []).map(p => p.label).slice(0,4).join("、");
+      hint.textContent = `已提炼 ${n} 条可落地商机（SeekMoney+OPC）` + (plats ? ` · ${plats}` : "");
+    }
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="error-state">${escapeHtml(e.message||String(e))}</div>`;
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 渲染 AI 提炼的商机卡片。
+ */
+function renderHotOpportunities(){
+  const box = $("hotOppBox");
+  if (!box) return;
+  const items = window.__hotOpportunities || [];
+  if (!items.length) {
+    box.innerHTML = `<div class="empty-state">未提炼到可靠商机，可换一批热搜后再试。</div>`;
+    return;
+  }
+  box.innerHTML = items.map((o, i) => {
+    const conf = Math.round((Number(o.confidence)||0)*100);
+    const plats = (o.signal_platforms||[]).slice(0,3).join("、");
+    const pri = o.priority_score!=null ? `优先级 ${Number(o.priority_score).toFixed(0)}` : "";
+    const pain = o.surface_pain ? `痛点：${o.surface_pain}` : (o.why_reliable||"");
+    const opc = o.opc_fit ? `一人公司适配：${o.opc_fit}` : "";
+    return `<button type="button" class="opp-extract-card" onclick="applyHotOpportunity(${i})">
+      <h4>${escapeHtml(o.title||"—")}</h4>
+      <div class="conf">可信度 ${conf}%${pri?` · ${escapeHtml(pri)}`:""}${plats?` · ${escapeHtml(plats)}`:""}</div>
+      <div class="meta" style="margin-top:6px">${escapeHtml(pain)}</div>
+      <div class="meta">付费方：${escapeHtml(o.who_pays||"—")} · 两周：${escapeHtml(o.mvp_2w||"—")}</div>
+      ${opc?`<div class="meta">${escapeHtml(opc)}</div>`:""}
+    </button>`;
+  }).join("");
+}
+
+/**
+ * 采用某条提炼商机，并匹配落地项目。
+ * @param {number} i 索引
+ */
+async function applyHotOpportunity(i){
+  const o = (window.__hotOpportunities||[])[i];
+  if (!o) return;
+  if ($("topic")) $("topic").value = o.title || "";
+  const hint = $("hotOppHint");
+  if (hint) hint.textContent = `已选用「${o.title}」，正在匹配可落地项目…`;
+  const hotspots = allPlatformHotItems().slice(0, 20);
+  try {
+    const industry = o.industry || (typeof getIndustryValue === "function" ? getIndustryValue() : "") || "";
+    const theme_pack = $("themePack")?.value || "";
+    const res = await api("/api/research/hotspot-opportunity", {
+      method: "POST",
+      body: JSON.stringify({
+        hotspots: hotspots.length ? hotspots : [{ title: o.title }],
+        industry,
+        theme_pack,
+        generate_plan: true,
+        use_ai: true,
+        opportunity_title: o.title || "",
+      }),
+    });
+    topicRec = {
+      ...(topicRec || {}),
+      recommended: res.topic || o.title || "",
+      industry: { name: res.industry || industry, id: "", hint: "" },
+    };
+    goStage("land");
+    const box = $("projectBox");
+    if (box) box.innerHTML = renderOpportunityPortfolio({
+      topic: res.topic,
+      industry: res.industry,
+      note: res.note || "仅展示可落地项目",
+      items: res.landable_items || [],
+      landable_items: res.landable_items || [],
+      portfolio: res.portfolio,
+      landing_plan: res.landing_plan,
+    }, {
+      topic: res.topic,
+      industry: res.industry,
+      opportunity_context: o.mvp_2w || "",
+    });
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function runHotspotOpportunity(){
+  const hint = $("hotHint");
+  const items = window.__hotItems || [];
+  let selected = [...(window.__hotSelected||[])].map(i => items[i]).filter(Boolean);
+  if (!selected.length) selected = allPlatformHotItems().slice(0, 12);
+  if (!selected.length) {
+    alert("请先同步热点或选择条目");
+    return;
+  }
+  if (hint) hint.textContent = "正在生成可落地项目…";
+  try {
+    const industry = (typeof getHotIndustryValue === "function" ? getHotIndustryValue() : "")
+      || (typeof getIndustryValue === "function" ? getIndustryValue() : "")
+      || "";
+    const theme_pack = $("themePack")?.value || "";
+    const preferred = (window.__hotOpportunities||[])[0]?.title || "";
+    const res = await api("/api/research/hotspot-opportunity", {
+      method: "POST",
+      body: JSON.stringify({
+        hotspots: selected,
+        industry,
+        theme_pack,
+        generate_plan: true,
+        use_ai: true,
+        opportunity_title: preferred,
+      }),
+    });
+    if (res.topic && $("topic")) $("topic").value = res.topic;
+    topicRec = {
+      ...(topicRec || {}),
+      recommended: res.topic || "",
+      industry: { name: res.industry || industry, id: "", hint: "" },
+    };
+    goStage("land");
+    const box = $("projectBox");
+    if (box) box.innerHTML = renderOpportunityPortfolio({
+      topic: res.topic,
+      industry: res.industry,
+      note: res.note || "仅展示可落地项目",
+      items: res.landable_items || [],
+      landable_items: res.landable_items || [],
+      portfolio: res.portfolio,
+      landing_plan: res.landing_plan,
+    }, {
+      topic: res.topic,
+      industry: res.industry,
+      opportunity_context: (res.direction_seed || ""),
+    });
+    if (hint) hint.innerHTML = `主题 <b>${escapeHtml(res.topic||"—")}</b> · 可落地 ${res.landable_count||0}`;
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function handoffToPaperclip(hitlId){
+  const ctx = window.__oppCtx || {};
+  const brief = window.__hitlBrief || {};
+  const projects = window.__hitlProjectItems || [];
+  const planMd = $("landingPlanMd")?.textContent || window.__lastLandingPlan?.markdown || "";
+  const topic = ctx.topic || ($("topic")?.value||"").trim() || brief?.recommended_projects?.topic || "";
+  if (!topic) { alert("缺少商机主题"); return; }
+  const statusEl = $("paperclipHandoffStatus");
+  if (statusEl) statusEl.textContent = "正在创建落地任务…";
+  try {
+    const res = await api("/api/paperclip/handoff", {
+      method: "POST",
+      body: JSON.stringify({
+        topic,
+        industry: ctx.industry || "",
+        opportunity_context: ctx.opportunity_context || "",
+        landing_plan_markdown: planMd,
+        projects: projects.slice(0, 8),
+        decision_brief_summary: JSON.stringify({
+          verdict: brief?.risk?.verdict || null,
+          unit: brief?.unit_economics || null,
+        }).slice(0, 1500),
+        hitl_task_id: hitlId || "",
+        trace_id: "",
+      }),
+    });
+    if (statusEl) {
+      const kids = (res.children || []).length;
+      statusEl.innerHTML = `已创建落地任务${kids ? ` · ${kids} 项拆解` : ""}`;
+      loadPaperclipIssues();
+      goStage("hand");
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function refreshIntegrationPills(){
+  try {
+    const st = await api("/api/integrations/status");
+    const hot = st.hotspots || {};
+    const tasks = st.tasks || {};
+    const trEl = $("trPill");
+    const pcEl = $("pcPill");
+    if (trEl) {
+      trEl.textContent = hot.ok === false ? "热点异常" : "热点就绪";
+      trEl.className = "pill " + (hot.ok === false ? "bad" : "on");
+      trEl.title = "热点服务正常";
+    }
+    if (pcEl) {
+      pcEl.textContent = tasks.ok === false ? "任务异常" : "任务就绪";
+      pcEl.className = "pill " + (tasks.ok === false ? "bad" : "on");
+      pcEl.title = "落地任务中心正常";
+    }
+  } catch (_) {
+    const trEl = $("trPill");
+    const pcEl = $("pcPill");
+    if (trEl) { trEl.textContent = "热点就绪"; trEl.className = "pill on"; }
+    if (pcEl) { pcEl.textContent = "任务就绪"; pcEl.className = "pill on"; }
+  }
+}
+
+let projSourceFilter = "";
+
+function setProjSource(btn){
+  projSourceFilter = btn?.dataset?.src || "";
+  document.querySelectorAll("#projSourceTabs .proj-tab").forEach(el=>{
+    el.classList.toggle("on", el === btn);
+  });
+  loadRecommendedProjects(false);
+}
+
+function fillProjIndustryFilter(items){
+  const sel = $("projIndustry");
+  if (!sel) return;
+  const cur = sel.value;
+  const rows = items || [];
+  sel.innerHTML = `<option value="">行业·全部</option>` + rows.map(it=>{
+    const name = it.name || it.id || "";
+    return `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+  }).join("");
+  if (cur) sel.value = cur;
+}
+
+async function refreshProjectLibStats(){
+  const el = $("projectLibStats");
+  if (!el) return;
+  // 商业版不对客户展示库内赛道/难度分布
+  el.style.display = "none";
+  el.textContent = "";
+}
+
+async function loadRecommendedProjects(forceRefresh){
+  const box = $("projectBox");
+  const refresh = !!forceRefresh;
+  if (box) box.innerHTML = `<div class="hint">${refresh?"全网抓取并入库中…":"读本地项目库…"}</div>`;
+  const topic = ($("topic")?.value || topicRec.recommended || "").trim();
+  const industry = ($("projIndustry")?.value || topicRec.industry?.name || getIndustryValue() || "").trim();
+  const track = $("projTrack")?.value || "";
+  const difficulty = $("projDiff")?.value || "";
+  const region = $("projRegion")?.value || "";
+  const funding_stage = $("projStage")?.value || "";
+  const funding_band = $("projFunding")?.value || "";
+  const company_nature = $("projNature")?.value || "";
+  try {
+    const q = new URLSearchParams({
+      topic: topic || "SaaS AI",
+      industry,
+      limit: "24",
+      mode: "projects",
+      use_cache: refresh ? "false" : "true",
+      refresh: refresh ? "true" : "false",
+      track,
+      difficulty,
+      source: projSourceFilter || "",
+      region,
+      funding_stage,
+      funding_band,
+      company_nature,
+    });
+    const data = await api(`/api/research/projects?${q}`);
+    const by = data.by_source || {};
+    const byLine = Object.keys(by).length
+      ? Object.entries(by).map(([k,v])=>`${k}:${v}`).join(" · ")
+      : (data.sources_used||[]).join(", ");
+    if (box) {
+      box.innerHTML = `
+        <div class="hint" style="margin-bottom:8px">${data.from_cache?"缓存":"全网"} ${data.count||0} · ${escapeHtml(byLine||"—")}</div>
+        ${renderProjectCards(data.items||[])}
+        ${(data.errors||[]).length?`<div class="alert-line">${escapeHtml([...new Set((data.errors||[]).map(e=>String(e).replace(/GitHub Search HTTP 403:[^|]*/g,'GitHub Search 限流')).slice(0,2))].join(" | "))}</div>`:""}`;
+    }
+    await refreshProjectLibStats();
+    return data;
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="empty">加载失败：${escapeHtml(String(e.message||e))}</div>`;
+    return null;
+  }
+}
+
+async function warmProjectLibrary(){
+  const hint = $("projectActionHint");
+  if (hint) hint.textContent = "预热入库中（首次较慢）…";
+  try {
+    const topic = ($("topic")?.value || "SaaS AI 创业").trim();
+    const res = await api(`/api/research/projects/warm?topic=${encodeURIComponent(topic)}&limit=30`, {method:"POST"});
+    if (hint) hint.textContent = `已入库 +${res.upsert?.added||0} / 更新 ${res.upsert?.updated||0} · 库总量 ${res.stats?.count||0}`;
+    await loadRecommendedProjects(false);
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function crawlPitchhub(){
+  const hint = $("projectActionHint");
+  const hh = $("harnessHint");
+  if (hint) hint.textContent = "Harness 已启动 PitchHub 分片爬取（后台）…";
+  try {
+    const res = await api("/api/research/pitchhub/crawl?max_items=2000&background=true", {method:"POST"});
+    const job = res.job || {};
+    if (hh) hh.textContent = `Harness 任务 ${job.id||"—"} · ${job.status||"—"} · ${job.harness?.pattern||"plan-worker-judge"}`;
+    if (hint) hint.textContent = `已排队 ${job.id||""}，可稍后点「读缓存」查看增量；全量需多次续跑。`;
+    // 轮询几次
+    if (job.id) {
+      for (let i=0;i<8;i++){
+        await new Promise(r=>setTimeout(r, 2500));
+        const d = await api(`/api/harness/jobs/${encodeURIComponent(job.id)}`);
+        if (hh) hh.textContent = `Harness ${d.id} · ${d.status} · ${d.summary||d.phase||""}`;
+        if (d.status === "success" || d.status === "failed") {
+          if (hint) hint.textContent = d.summary || d.status;
+          await loadRecommendedProjects(false);
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function saveGithubToken(){
+  const key = ($("githubTokenPaste")?.value || "").trim();
+  const hint = $("githubTokenHint");
+  if (!key) {
+    if (hint) hint.textContent = "请先粘贴 github.com/settings/tokens 生成的 Token";
+    return;
+  }
+  try {
+    await api("/api/models/keys/save", {
+      method: "POST",
+      body: JSON.stringify({
+        env_name: "GITHUB_TOKEN",
+        api_key: key,
+        write_dotenv: !!$("githubWriteDotenv")?.checked,
+        activate: false,
+      }),
+    });
+    if ($("githubTokenPaste")) $("githubTokenPaste").value = "";
+    if (hint) hint.innerHTML = `<span class="badge pass">GITHUB_TOKEN 已保存</span> Search 限流应缓解。`;
+    await refreshGithubAndSyncStatus();
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 刷新 GitHub Token 与定时同步状态到侧栏。
+ */
+async function refreshGithubAndSyncStatus(){
+  try {
+    const st = await api("/api/research/sync/status");
+    const gh = st.github || {};
+    const cfg = st.config || {};
+    if ($("githubTokenStatus")) {
+      $("githubTokenStatus").innerHTML = gh.configured
+        ? `<span class="badge pass">已配置 · ${escapeHtml(gh.env_name||"GITHUB_TOKEN")}</span>`
+        : `<span class="issue">未配置 · ${escapeHtml(gh.hint||"")}</span>`;
+    }
+    if ($("syncEnabled")) $("syncEnabled").checked = cfg.enabled !== false;
+    if ($("syncIntervalMin") && cfg.interval_minutes) $("syncIntervalMin").value = cfg.interval_minutes;
+    if ($("syncSchedStatus")) {
+      const run = st.scheduler_running ? "调度运行中" : "调度未启动";
+      const last = st.last_schedule_at ? ` · 上次 ${String(st.last_schedule_at).slice(0,19).replace("T"," ")}` : "";
+      $("syncSchedStatus").textContent = `${run} · 间隔 ${cfg.interval_minutes||30} 分钟${last}`;
+    }
+  } catch (e) {
+    if ($("githubTokenStatus")) $("githubTokenStatus").textContent = e.message || String(e);
+  }
+}
+
+/**
+ * 保存定时同步配置。
+ */
+async function saveSyncConfig(){
+  const hint = $("syncActionHint");
+  try {
+    const interval = Number($("syncIntervalMin")?.value || 30);
+    const res = await api("/api/research/sync/config", {
+      method: "PUT",
+      body: JSON.stringify({
+        enabled: !!$("syncEnabled")?.checked,
+        interval_minutes: interval,
+        sources: ["36kr", "cyzone", "cid_indie", "github", "newsnow"],
+      }),
+    });
+    if (hint) hint.innerHTML = `<span class="badge pass">已保存 · 间隔 ${res.config?.interval_minutes||interval} 分钟</span>`;
+    await refreshGithubAndSyncStatus();
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 手动触发一轮增量同步。
+ */
+async function runIncrementalSyncNow(){
+  const hint = $("syncActionHint");
+  if (hint) hint.textContent = "正在同步 36氪/创业邦/独立开发/GitHub/热搜…";
+  try {
+    const res = await api("/api/research/sync/run", {
+      method: "POST",
+      body: JSON.stringify({ include_github: true, include_newsnow: true }),
+    });
+    const run = res.run || {};
+    const ms = run.duration_ms != null ? `${run.duration_ms}ms` : "";
+    const counts = run.counts || {};
+    if (hint) {
+      hint.innerHTML = `<span class="badge ${run.status==="ok"?"pass":"warn"}">${escapeHtml(run.status||"")}</span> `
+        + `耗时 ${ms} · 新增 ${run.added||0} · 更新 ${run.updated||0} · `
+        + `vc=${counts.vc||0} github=${counts.github||0}`;
+    }
+    await refreshSyncLogs();
+    await refreshGithubAndSyncStatus();
+    await refreshHotLibStats();
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 渲染同步日志列表。
+ */
+async function refreshSyncLogs(){
+  const box = $("syncLogBox");
+  if (!box) return;
+  box.innerHTML = `<div class="skeleton"></div>`;
+  try {
+    const data = await api("/api/research/sync/logs?limit=30");
+    const items = data.items || [];
+    if (!items.length) {
+      box.innerHTML = `<div class="empty">暂无同步记录。可点「立即同步」。</div>`;
+      return;
+    }
+    box.innerHTML = items.map(r => {
+      const ms = r.duration_ms != null ? `${r.duration_ms} ms` : "-";
+      const when = String(r.started_at || "").slice(0,19).replace("T"," ");
+      const counts = r.counts || {};
+      const err = (r.errors || []).slice(0,2).join("；");
+      const badge = r.status === "ok" ? "pass" : (r.status === "partial" ? "warn" : "issue");
+      return `<div class="hot-item" style="cursor:default">
+        <b>${escapeHtml(r.kind||"sync")} · ${escapeHtml(r.trigger||"")}</b>
+        <div class="meta"><span class="badge ${badge}">${escapeHtml(r.status||"")}</span> ${escapeHtml(when)} · 耗时 ${escapeHtml(ms)}</div>
+        <div class="meta">新增 ${r.added||0} · 更新 ${r.updated||0} · vc ${counts.vc||0} · github ${counts.github||0} · newsnow+${counts.newsnow_added||0}</div>
+        ${err ? `<div class="meta issue">${escapeHtml(err)}</div>` : ""}
+      </div>`;
+    }).join("");
+  } catch (e) {
+    box.innerHTML = `<div class="error-state">${escapeHtml(e.message||String(e))}</div>`;
+  }
+}
+
+async function saveWorkflowTemplate(){
+  const id = ($("wfCloneId")?.value || "").trim();
+  const name = ($("wfCloneName")?.value || "").trim();
+  const cloneFrom = $("wfTemplate")?.value || "default-closed-loop";
+  const hint = $("wfTemplateHint");
+  if (!id) {
+    if (hint) hint.textContent = "请填写新模板 id（字母开头）";
+    return;
+  }
+  try {
+    const res = await api("/api/workflows/templates", {
+      method: "POST",
+      body: JSON.stringify({ id, name: name || id, description: `克隆自 ${cloneFrom}`, clone_from: cloneFrom }),
+    });
+    if (hint) hint.textContent = `已保存自定义模板 ${res.item?.id}`;
+    await refreshMeta();
+    if ($("wfTemplate")) $("wfTemplate").value = id;
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function deleteWorkflowTemplate(){
+  const id = ($("wfTemplate")?.value || "").trim();
+  const hint = $("wfTemplateHint");
+  if (!id || id === "default-closed-loop") {
+    if (hint) hint.textContent = "只能删除自定义模板，不能删内置";
+    return;
+  }
+  if (!confirm(`删除自定义模板「${id}」？`)) return;
+  try {
+    await api(`/api/workflows/templates/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (hint) hint.textContent = `已删除 ${id}`;
+    await refreshMeta();
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+/**
+ * 将识别结果写回主题/行业下拉（按 industry_id 或精确行业名匹配）。
+ * @param {object} t theme 对象
+ */
+function applyThemeToForm(t){
+  if (!t) return;
+  if (t.topic && $("topic")) $("topic").value = t.topic;
+  const wantId = (t.industry_id || "").trim();
+  const wantName = (t.industry_hint || t.industry_focus || "").trim();
+  const sel = $("industrySelect");
+  if (sel && (wantId || wantName)) {
+    let opt = null;
+    if (wantId) {
+      opt = [...sel.options].find(o => (o.getAttribute("data-id") || "") === wantId);
+    }
+    if (!opt && wantName) {
+      opt = [...sel.options].find(o => o.value === wantName || (o.text||"") === wantName);
+    }
+    if (!opt && wantName) {
+      opt = [...sel.options].find(o => (o.text||"").includes(wantName) || wantName.includes(o.value));
+    }
+    if (opt) {
+      sel.value = opt.value;
+      toggleCustomIndustryInput();
+    } else if (wantName && $("industryCustom")) {
+      // 目录未命中：写入自定义行业并选中
+      const o = document.createElement("option");
+      o.value = wantName;
+      o.textContent = wantName;
+      if (wantId) o.setAttribute("data-id", wantId);
+      sel.insertBefore(o, sel.lastElementChild);
+      sel.value = wantName;
+      toggleCustomIndustryInput();
+      rememberCustomIndustry();
+    }
+  }
+  if (t.track && $("projTrack")) $("projTrack").value = t.track;
+  if (t.difficulty && $("projDiff")) $("projDiff").value = t.difficulty;
+  topicRec = {
+    ...(topicRec || {}),
+    recommended: t.topic || topicRec?.recommended || "",
+    industry: {
+      id: t.industry_id || "",
+      name: t.industry_hint || wantName || "",
+      hint: t.industry_focus || "",
+    },
+  };
+}
+
+async function identifyThemeFromProject(idx, storeKey){
+  const p = _projectAt(idx, storeKey);
+  if (!p) return;
+  const hint = $("projectActionHint");
+  if (hint) hint.textContent = "正在识别商机主题…";
+  try {
+    const res = await api("/api/research/project-theme", {
+      method: "POST",
+      body: JSON.stringify({
+        name: p.name || "",
+        summary: p.summary || "",
+        url: p.url || "",
+        source: p.source_label || p.source || "",
+        industry_niches: p.industry_niches || [],
+        pain_tags: p.pain_tags || [],
+        audience_tags: p.audience_tags || [],
+        industry: p.industry || "",
+        track: p.track || "",
+        difficulty: p.difficulty || "",
+        with_portfolio: false,
+      }),
+    });
+    const t = res.theme || {};
+    applyThemeToForm(t);
+    if (hint) {
+      const tags = [t.industry_hint, t.track, t.difficulty, t.method].filter(Boolean).join(" / ");
+      hint.innerHTML = `已填入主题：<b>${escapeHtml(t.topic||"—")}</b>`
+        + (tags ? ` · <span class="mono">${escapeHtml(tags)}</span>` : "")
+        + `<br/><span class="mono">${escapeHtml(t.rationale||"")}</span>`;
+    }
+    goStage("land");
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function runWorkflowFromProject(idx, storeKey){
+  await identifyThemeFromProject(idx, storeKey);
+  const topic = ($("topic")?.value || "").trim();
+  if (!topic) { alert("未能识别主题"); return; }
+  focusDock("hitl");
+  await startRun();
+}
+
+async function findPortfolioFromProject(idx, storeKey){
+  const p = _projectAt(idx, storeKey);
+  if (!p) return;
+  const hint = $("projectActionHint");
+  const box = $("projectBox");
+  if (hint) hint.textContent = "正在按商机主题匹配可落地组合…";
+  try {
+    // 先识别主题，再用商机维度做相关性组合（避免无关书/教程混入）
+    const themeRes = await api("/api/research/project-theme", {
+      method: "POST",
+      body: JSON.stringify({
+        name: p.name || "",
+        summary: p.summary || "",
+        url: p.url || "",
+        source: p.source_label || p.source || "",
+        industry_niches: p.industry_niches || [],
+        pain_tags: p.pain_tags || [],
+        audience_tags: p.audience_tags || [],
+        industry: p.industry || "",
+        track: p.track || "",
+        difficulty: p.difficulty || "",
+        with_portfolio: false,
+      }),
+    });
+    const t = themeRes.theme || {};
+    applyThemeToForm(t);
+    const topic = t.topic || p.name || "";
+    const industry = t.industry_hint || p.industry || "";
+    const linked = await loadOpportunityPortfolio(
+      topic,
+      industry,
+      `${p.summary || ""}\n${t.rationale || ""}`.slice(0, 800),
+    );
+    const pack = {
+      topic,
+      industry,
+      note: "已按商机主题相关性匹配单项目与组合；可一键生成落地方案。",
+      items: linked.portfolio?.singles || [],
+      portfolio: linked.portfolio,
+      landing_plan: linked.landing_plan,
+    };
+    if (hint) {
+      const n = (pack.portfolio?.combos || []).length;
+      const s = (pack.portfolio?.singles || []).length;
+      hint.innerHTML = `主题：<b>${escapeHtml(topic)}</b> · 高相关 ${s} · 组合 ${n}。可点「生成落地方案」。`;
+    }
+    if (box) box.innerHTML = renderOpportunityPortfolio(pack, {topic, industry, opportunity_context: p.summary || ""});
+  } catch (e) {
+    if (hint) hint.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function api(path, opts={}) {
+  const res = await fetch(path, { headers: {"Content-Type":"application/json", ...(opts.headers||{})}, ...opts });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : (data.detail && JSON.stringify(data.detail)) || res.statusText);
+  return data;
+}
+
+function statusClass(s){ return ["idle","running","success","failed","waiting"].includes(s)?s:"idle"; }
+
+function renderGraph() {
+  const canvas = $("canvas");
+  // clear nodes except svg
+  [...canvas.querySelectorAll(".node")].forEach(n => n.remove());
+  if (!graph) return;
+  const nodes = Object.values(graph.nodes || {});
+  nodes.forEach(n => {
+    const el = document.createElement("div");
+    el.className = `node ${statusClass(n.status)} ${selectedNode===n.id?"active":""}`;
+    el.style.left = (n.x||0) + "px";
+    el.style.top = (n.y||0) + "px";
+    el.onclick = () => selectNode(n.id);
+    const ins = (n.inputs||[]).length, outs = (n.outputs||[]).length;
+    const chips = [];
+    (n.inputs||[]).slice(0,3).forEach(b => chips.push(`<span class="chip">in:${b.type}</span>`));
+    (n.outputs||[]).slice(0,3).forEach(b => chips.push(`<span class="chip">out:${b.type}</span>`));
+    el.innerHTML = `
+      <div class="kind">${n.kind || "node"}</div>
+      <div class="title">${n.label || n.id}</div>
+      <div class="status"><span class="dot"></span>${n.status || "idle"}</div>
+      <div class="io-mini">${chips.join("") || `<span class="chip">I/O ${ins}/${outs}</span>`}</div>`;
+    canvas.appendChild(el);
+  });
+  drawWires();
+}
+
+function drawWires() {
+  const svg = $("wires");
+  svg.innerHTML = "";
+  if (!graph) return;
+  const map = graph.nodes;
+  (graph.edges||[]).forEach(([a,b]) => {
+    const na = map[a], nb = map[b];
+    if (!na || !nb) return;
+    const x1 = (na.x||0) + 148, y1 = (na.y||0) + 48;
+    const x2 = (nb.x||0), y2 = (nb.y||0) + 48;
+    const mx = (x1+x2)/2;
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d", `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+    path.setAttribute("stroke", "#6f7f3a");
+    path.setAttribute("stroke-width", "2.2");
+    path.setAttribute("fill", "none");
+    path.setAttribute("opacity", "0.85");
+    svg.appendChild(path);
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx", x2); c.setAttribute("cy", y2); c.setAttribute("r","3.5");
+    c.setAttribute("fill", "#c6f000");
+    svg.appendChild(c);
+  });
+}
+
+function selectNode(id) {
+  selectedNode = id;
+  focusDock("node");
+  const node = graph?.nodes?.[id];
+  draftInputs = JSON.parse(JSON.stringify(node?.inputs || []));
+  $("nodeMeta").textContent = node ? `${node.label} · ${id} · ${node.status}` : "";
+  if ($("nodeStatusSelect") && node?.status) {
+    const st = String(node.status);
+    if ([...$("nodeStatusSelect").options].some(o => o.value === st)) {
+      $("nodeStatusSelect").value = st;
+    }
+  }
+  if (activeTab === "bind") {
+    $("editor").style.display = "none";
+    $("bindEditor").style.display = "flex";
+    loadBindingPanel();
+  } else {
+    $("bindEditor").style.display = "none";
+    $("editor").style.display = (node && activeTab !== "log") ? "flex" : "none";
+  }
+  renderGraph();
+  renderIO();
+  refreshNodeLogs();
+}
+
+async function loadBindingPanel() {
+  if (!selectedNode) return;
+  const agentKey = NODE_AGENT[selectedNode] || selectedNode;
+  $("bindAgentKey").textContent = `节点 ${selectedNode} → Agent ${agentKey}`;
+  try {
+    const b = await api(`/api/bindings/${agentKey}`);
+    const model = b.model || {};
+    $("bindModelMode").value = model.mode || "route";
+    $("bindRoute").value = model.route || "tier_m";
+    $("bindProfileId").value = model.profile_id || "";
+    $("bindApiBase").value = model.api_base || "";
+    $("bindModelName").value = model.model || "";
+    $("bindApiKeyEnv").value = model.api_key_env || "";
+    $("bindSkills").value = (b.skills || []).join(", ");
+    $("bindRules").value = (b.rules || []).join(", ");
+    $("bindMcp").value = (b.mcp || []).map(m => m.name || m).join(", ");
+    $("bindPrompt").value = b.prompt || "";
+    $("bindExtraSystem").value = b.extra_system || "";
+    $("bindAgentReplace").value = "";
+    // 若当前运行图有节点 config，优先展示节点级覆盖
+    const nodeCfg = graph?.nodes?.[selectedNode]?.config || {};
+    if (nodeCfg.prompt) $("bindPrompt").value = nodeCfg.prompt;
+    if (nodeCfg.extra_system) $("bindExtraSystem").value = nodeCfg.extra_system;
+    if (nodeCfg.agent_key) $("bindAgentReplace").value = nodeCfg.agent_key;
+    if (Array.isArray(nodeCfg.skills) && nodeCfg.skills.length) $("bindSkills").value = nodeCfg.skills.join(", ");
+    const skillHint = (catalogs.skills || []).slice(0, 12).map(s => s.id).join(", ");
+    const ruleHint = (catalogs.rules || []).map(r => r.id).join(", ");
+    const mcpHint = (catalogs.mcp || []).map(m => m.name).join(", ");
+    $("bindCatalogHint").textContent = `Skill目录: ${skillHint || "—"} | Rule: ${ruleHint || "—"} | MCP: ${mcpHint || "—"}`;
+  } catch (e) {
+    $("bindCatalogHint").textContent = e.message;
+  }
+}
+
+async function saveBinding() {
+  if (!selectedNode) return;
+  const agentKey = NODE_AGENT[selectedNode] || selectedNode;
+  const mode = $("bindModelMode").value;
+  const model = { mode, route: $("bindRoute").value };
+  if ($("bindProfileId").value.trim()) model.profile_id = $("bindProfileId").value.trim();
+  if (mode === "explicit") {
+    model.api_base = $("bindApiBase").value.trim();
+    model.model = $("bindModelName").value.trim();
+    model.api_key_env = $("bindApiKeyEnv").value.trim() || "AGNES_API_KEY";
+    model.provider = "custom";
+  }
+  const split = (s) => s.split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
+  const mcp = split($("bindMcp").value).map(name => ({ name, enabled: true }));
+  await api(`/api/bindings/${agentKey}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      model,
+      skills: split($("bindSkills").value),
+      rules: split($("bindRules").value),
+      mcp,
+      prompt: $("bindPrompt")?.value || "",
+      extra_system: $("bindExtraSystem")?.value || "",
+    })
+  });
+  alert("全局 Agent 绑定已热更新");
+  loadBindingPanel();
+}
+
+async function saveNodeConfig() {
+  if (!currentTrace || !selectedNode) return alert("需要先有运行 Trace 并选中节点");
+  const split = (s) => s.split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
+  const patch = {
+    prompt: $("bindPrompt")?.value || "",
+    extra_system: $("bindExtraSystem")?.value || "",
+    skills: split($("bindSkills").value),
+    rules: split($("bindRules").value),
+    mcp: split($("bindMcp").value).map(name => ({ name, enabled: true })),
+  };
+  const agentReplace = ($("bindAgentReplace")?.value || "").trim();
+  if (agentReplace) patch.agent_key = agentReplace;
+  const mode = $("bindModelMode").value;
+  const model = { mode, route: $("bindRoute").value };
+  if ($("bindProfileId").value.trim()) model.profile_id = $("bindProfileId").value.trim();
+  if (mode === "explicit") {
+    model.api_base = $("bindApiBase").value.trim();
+    model.model = $("bindModelName").value.trim();
+    model.api_key_env = $("bindApiKeyEnv").value.trim() || "AGNES_API_KEY";
+    model.provider = "custom";
+  }
+  patch.model = model;
+  const data = await api(`/api/runs/${currentTrace}/nodes/${selectedNode}/config`, {
+    method: "PUT",
+    body: JSON.stringify(patch),
+  });
+  graph = data.graph;
+  alert("已写入本节点 config（仅当前 Trace）");
+  renderGraph();
+  loadBindingPanel();
+}
+
+async function resetBinding() {
+  if (!selectedNode) return;
+  const agentKey = NODE_AGENT[selectedNode] || selectedNode;
+  await api(`/api/bindings/${agentKey}/reset`, { method: "POST", body: "{}" });
+  loadBindingPanel();
+}
+
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll(".tab[data-tab]").forEach(t => t.classList.toggle("on", t.dataset.tab===tab));
+  $("ioView").style.display = tab === "bind" ? "none" : "block";
+  $("bindEditor").style.display = tab === "bind" ? "flex" : "none";
+  $("editor").style.display = (tab !== "bind" && tab !== "log" && selectedNode) ? "flex" : "none";
+  if (tab === "bind") loadBindingPanel();
+  else renderIO();
+  if (tab === "log") refreshNodeLogs();
+}
+
+function setAddType(t) {
+  addType = t;
+  document.querySelectorAll(".tab[data-add]").forEach(el => el.classList.toggle("on", el.dataset.add===t));
+}
+
+function renderMediaBlocks(blocks, editable=false) {
+  if (!blocks?.length) return `<div class="empty">暂无内容 — 可在下方添加文字/图片/视频</div>`;
+  return blocks.map((b, idx) => {
+    let body = "";
+    if (b.type === "text") body = `<pre>${escapeHtml(b.content||"")}</pre>`;
+    if (b.type === "image") body = `${b.content?`<pre>${escapeHtml(b.content)}</pre>`:""}${b.url?`<img src="${b.url}" alt="image" />`:`<div class="empty">无图片 URL</div>`}`;
+    if (b.type === "video") body = `${b.content?`<pre>${escapeHtml(b.content)}</pre>`:""}${b.url?`<video src="${b.url}" controls></video>`:`<div class="empty">无视频 URL</div>`}`;
+    const del = editable ? `<button class="btn ghost" onclick="removeDraft(${idx})">删除</button>` : "";
+    return `<div class="block"><header><span class="type">${b.type} · ${b.name||""}</span>${del}</header>${body}</div>`;
+  }).join("");
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+function nodeEventMatch(ev, nodeId) {
+  if (!ev) return false;
+  const agent = NODE_AGENT[nodeId] || nodeId;
+  return ev.node_id === nodeId || ev.agent === nodeId || ev.agent === agent
+    || (ev.type === "phase" && ev.agent === agent);
+}
+
+function renderLogEvents(events) {
+  if (!events?.length) return `<div class="empty">暂无本节点执行日志。运行后可看到阶段、模型、Skill、提示词。</div>`;
+  return events.map((ev) => {
+    const cls = ev.type === "stuck" || ev.status === "stuck" ? "stuck" : (ev.status === "failed" ? "failed" : "");
+    const when = (ev.ts || "").replace("T", " ").slice(0, 19);
+    const meta = [];
+    if (ev.model) meta.push(`model=${ev.model}`);
+    if (ev.route) meta.push(`route=${ev.route}`);
+    if (ev.skills?.length) meta.push(`skills=${ev.skills.join(",")}`);
+    if (ev.stage) meta.push(`stage=${ev.stage}`);
+    let promptHtml = "";
+    if (ev.prompt && (ev.prompt.system || ev.prompt.user)) {
+      const sys = ev.prompt.system || "";
+      const usr = ev.prompt.user || "";
+      promptHtml = `<details open><summary>查看提示词（system ${ev.prompt.system_chars||sys.length} / user ${ev.prompt.user_chars||usr.length} 字）</summary>
+        <pre class="prompt"><b>[system]</b>\n${escapeHtml(sys)}\n\n<b>[user]</b>\n${escapeHtml(usr)}</pre></details>`;
+    }
+    let diag = "";
+    if (ev.diagnosis) {
+      const d = ev.diagnosis;
+      diag = `<div class="log-meta">卡住诊断: ${escapeHtml(d.reason||"")}\n最后阶段: ${escapeHtml(d.last_stage||"—")} · ${escapeHtml(d.last_message||"—")}\n空闲 ${d.elapsed_idle_sec||"?"}s\n建议: ${(d.hints||[]).map(escapeHtml).join("；")}</div>`;
+    }
+    if (ev.type === "run_finished" && ev.error) {
+      diag += `<div class="log-meta">失败: ${escapeHtml(ev.error)}</div>`;
+    }
+    return `<div class="log-item ${cls}"><header><span>${escapeHtml(ev.type||"log")} · ${escapeHtml(ev.status||"")}</span><span>${escapeHtml(when)}</span></header>
+      <div class="msg">${escapeHtml(ev.title || ev.summary || "")}</div>
+      ${meta.length ? `<div class="log-meta">${escapeHtml(meta.join(" · "))}</div>` : ""}
+      ${promptHtml}${diag}</div>`;
+  }).join("");
+}
+
+async function refreshNodeLogs() {
+  const banner = $("stuckBanner");
+  if (!currentTrace) {
+    if (banner) banner.style.display = "none";
+    if (activeTab === "log") $("ioView").innerHTML = `<div class="empty">先启动一次运行</div>`;
+    return;
+  }
+  try {
+    const data = await api(`/api/runs/${currentTrace}/events`);
+    runEvents = data.events || [];
+  } catch (_) {}
+  const stuck = [...runEvents].reverse().find(e => e.type === "stuck" || e.status === "stuck");
+  const failed = [...runEvents].reverse().find(e => e.type === "run_finished" && e.status === "failed");
+  if (banner) {
+    if (stuck) {
+      banner.style.display = "block";
+      const d = stuck.diagnosis || {};
+      banner.textContent = `卡住: ${stuck.summary || d.reason || ""}\n最后: ${d.last_message || stuck.title || ""}\n${(d.hints||[]).slice(0,2).join(" · ")}`;
+    } else if (failed) {
+      banner.style.display = "block";
+      banner.textContent = `运行失败: ${failed.error || failed.summary || "unknown"}`;
+    } else {
+      banner.style.display = "none";
+    }
+  }
+  if (activeTab !== "log") return;
+  if (!selectedNode) {
+    $("ioView").innerHTML = `<div class="empty">选择节点以查看该节点执行日志</div>`;
+    return;
+  }
+  const filtered = runEvents.filter(e =>
+    nodeEventMatch(e, selectedNode) || e.type === "stuck"
+    || (e.type === "run_finished" && e.status === "failed")
+  );
+  $("ioView").innerHTML = renderLogEvents(filtered.slice(-40));
+}
+
+function renderIO() {
+  if (activeTab === "log") { refreshNodeLogs(); return; }
+  if (!graph || !selectedNode) { $("ioView").innerHTML = `<div class="empty">选择节点以查看输入/输出</div>`; return; }
+  const node = graph.nodes[selectedNode];
+  if (activeTab === "in") $("ioView").innerHTML = renderMediaBlocks(draftInputs.length?draftInputs:(node.inputs||[]), true);
+  else if (activeTab === "out") $("ioView").innerHTML = renderMediaBlocks(node.outputs||[], false);
+}
+
+function addBlockToDraft() {
+  const content = $("editText").value.trim();
+  const url = $("editUrl").value.trim();
+  if (addType === "text" && !content) return alert("请输入文字");
+  if ((addType === "image" || addType === "video") && !url) return alert("请提供 URL 或先上传");
+  draftInputs.push({ type: addType, content, url: url || null, name: addType + "_" + (draftInputs.length+1) });
+  $("editText").value = ""; $("editUrl").value = "";
+  activeTab = "in"; setTab("in");
+}
+
+function removeDraft(idx){ draftInputs.splice(idx,1); renderIO(); }
+function clearDraft(){ draftInputs=[]; renderIO(); }
+
+async function uploadFile() {
+  const f = $("fileInput").files?.[0];
+  if (!f) return alert("请选择文件");
+  const fd = new FormData(); fd.append("file", f);
+  const res = await fetch("/api/media/upload", { method:"POST", body: fd });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "上传失败");
+  $("editUrl").value = data.url;
+  addType = data.type === "video" ? "video" : "image";
+  setAddType(addType);
+  alert("已上传，URL 已填入，点击「加入输入草稿」");
+}
+
+async function saveAndRerun() {
+  if (!currentTrace || !selectedNode) return;
+  await api(`/api/runs/${currentTrace}/nodes/${selectedNode}/inputs`, {
+    method:"PUT", body: JSON.stringify({ inputs: draftInputs })
+  });
+  $("ioView").innerHTML = `<div class="empty">重跑中…</div>`;
+  const data = await api(`/api/runs/${currentTrace}/nodes/${selectedNode}/rerun`, {
+    method:"POST",
+    body: JSON.stringify({ cascade: $("cascade").checked, generate_visuals: $("genVisual").checked })
+  });
+  graph = data.graph;
+  draftInputs = JSON.parse(JSON.stringify(graph.nodes[selectedNode]?.inputs || []));
+  renderGraph(); renderIO(); refreshHitl();
+}
+
+async function startRun() {
+  const topic = ($("topic")?.value || "").trim();
+  if (!topic) {
+    alert("请先填写「主题」再开始验证");
+    $("topic")?.focus();
+    return;
+  }
+  resetListen();
+  setRunButtonsBusy(true);
+  showRunStatusCard({
+    state: "starting",
+    title: "正在启动验证…",
+    meta: "创建工作流任务中，请稍候。完成后进度会显示在下方「工作流」面板。",
+    pct: 2,
+  });
+  try {
+    const body = {
+      topic,
+      theme_pack: $("themePack").value,
+      industry: getIndustryValue(),
+      force_bad_copy: $("forceBad").checked,
+      workflow_template: $("wfTemplate")?.value || "default-closed-loop",
+    };
+    const started = await api("/api/runs/async", { method:"POST", body: JSON.stringify(body) });
+    currentTrace = started.trace_id;
+    const shortId = String(currentTrace).slice(0, 18);
+    if ($("runControlHint")) {
+      $("runControlHint").innerHTML =
+        `验证已启动 · 编号 <span class="mono">${escapeHtml(shortId)}…</span> → 请看下方<strong>工作流</strong>节点变色；历史在「运行记录」。`;
+    }
+    showRunStatusCard({
+      state: "running",
+      title: "验证进行中",
+      meta: `任务 ${shortId}… · 已自动打开工作流面板 · 约需 5–10 分钟 · 需要人工确认时会进「审批中心」`,
+      pct: 5,
+    });
+    pulseAuxTab("canvas", true);
+    openAux("canvas");
+    await tickGraph();
+    listen(currentTrace);
+  } catch (e) {
+    showRunStatusCard({
+      state: "failed",
+      title: "启动失败",
+      meta: e.message || String(e),
+      pct: 0,
+    });
+    alert(e.message);
+  } finally {
+    setRunButtonsBusy(false);
+  }
+}
+
+/**
+ * 同步主/顶栏「开始验证」按钮忙闲态。
+ * @param {boolean} busy 是否忙碌中
+ */
+function setRunButtonsBusy(busy) {
+  ["runBtn", "runBtnTop"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.disabled = !!busy;
+    if (busy) el.textContent = "验证启动中…";
+    else el.textContent = "开始验证";
+  });
+}
+
+/**
+ * 展示定商机页的验证进度卡，并引导用户去哪看结果。
+ * @param {{state?:string,title?:string,meta?:string,pct?:number}} opts 状态选项
+ */
+function showRunStatusCard(opts) {
+  const card = $("runStatusCard");
+  if (!card) return;
+  card.style.display = "block";
+  const state = opts.state || "idle";
+  card.classList.remove("running", "done", "failed");
+  if (state === "running" || state === "starting" || state === "paused") card.classList.add("running");
+  if (state === "done") card.classList.add("done");
+  if (state === "failed") card.classList.add("failed");
+  if ($("runStatusTitle") && opts.title) $("runStatusTitle").textContent = opts.title;
+  if ($("runStatusMeta") && opts.meta != null) $("runStatusMeta").innerHTML = opts.meta;
+  if ($("runStatusBar") && opts.pct != null) {
+    $("runStatusBar").style.width = `${Math.max(0, Math.min(100, Number(opts.pct) || 0))}%`;
+  }
+}
+
+/**
+ * 根据当前 graph 刷新进度卡。
+ */
+function refreshRunStatusFromGraph() {
+  if (!currentTrace || !graph) return;
+  const nodes = Object.values(graph.nodes || {});
+  if (!nodes.length) return;
+  const total = nodes.length;
+  const done = nodes.filter((n) => ["success", "skipped"].includes(String(n.status || ""))).length;
+  const failed = nodes.filter((n) => String(n.status || "") === "failed").length;
+  const running = nodes.filter((n) => ["running", "waiting"].includes(String(n.status || ""))).length;
+  const waiting = nodes.filter((n) => String(n.status || "") === "waiting").length;
+  const pct = Math.round((done / total) * 100);
+  const shortId = String(currentTrace).slice(0, 18);
+  if (failed) {
+    showRunStatusCard({
+      state: "failed",
+      title: `验证失败（${done}/${total} 节点完成）`,
+      meta: `任务 ${escapeHtml(shortId)}… · 请打开「工作流」点红色节点查看原因，或到「运行记录」回看。`,
+      pct,
+    });
+    pulseAuxTab("canvas", false);
+    return;
+  }
+  if (done >= total && running === 0) {
+    showRunStatusCard({
+      state: "done",
+      title: "验证完成",
+      meta: `任务 ${escapeHtml(shortId)}… · 在「工作流」点各节点看输出；历史在「运行记录」；有审批项看「审批中心」；下一步可去「选项目」。`,
+      pct: 100,
+    });
+    pulseAuxTab("canvas", false);
+    return;
+  }
+  const tip = waiting
+    ? "有节点等待人工确认 → 请打开「审批中心」处理"
+    : "下方「工作流」面板可看每个节点状态；点节点查看输入/输出";
+  showRunStatusCard({
+    state: waiting ? "paused" : "running",
+    title: waiting ? "等待你审批" : `验证进行中（${done}/${total}）`,
+    meta: `任务 ${escapeHtml(shortId)}… · ${tip}`,
+    pct: Math.max(5, pct),
+  });
+}
+
+/**
+ * 高亮底部工作流 Tab，提示用户往哪看。
+ * @param {string} which aux id
+ * @param {boolean} on 是否脉冲
+ */
+function pulseAuxTab(which, on) {
+  document.querySelectorAll(".aux-tab").forEach((el) => {
+    if (el.dataset.aux === which) el.classList.toggle("pulse", !!on);
+    else if (on) el.classList.remove("pulse");
+  });
+}
+
+async function runHuntOnly(){
+  const box = $("topicRecBox");
+  if (box) box.innerHTML = `<div class="hint">四阶段狩猎中（宏观→痛点→重构→裁决）…</div>`;
+  try {
+    const res = await api("/api/research/hunt", {
+      method: "POST",
+      body: JSON.stringify({
+        direction: $("topic").value.trim(),
+        theme_pack: $("themePack").value,
+        industry: getIndustryValue(),
+      }),
+    });
+    const r = res.report || {};
+    const p4 = r.phase4_verdict || {};
+    const models = ((r.phase3_rebuild||{}).models||[]).slice(0,2);
+    if (r.recommended_topic) $("topic").value = r.recommended_topic;
+    if (box) {
+      box.innerHTML = `
+        <div style="margin-top:8px">
+          <div>${recBadge(p4.recommendation)} <b>${escapeHtml(r.recommended_opportunity||r.recommended_topic||"—")}</b></div>
+          <div class="hint">${escapeHtml(r.executive_summary||"")}</div>
+          <div class="phase-rail">
+            <div class="phase-pill"><b>①宏观</b>${escapeHtml((((r.phase1_macro||{}).cross_tracks||[]).map(t=>t.name).join(" / "))||"—")}</div>
+            <div class="phase-pill"><b>②痛点</b>${escapeHtml((r.phase2_micro||{}).pain_level||"—")} · ${escapeHtml((r.phase2_micro||{}).painkiller_or_vitamin||"—")}</div>
+            <div class="phase-pill"><b>③重构</b>${escapeHtml((r.phase3_rebuild||{}).preferred_model||"—")}</div>
+            <div class="phase-pill"><b>④裁决</b>LTV/CAC ${escapeHtml(p4.ltv_cac_check||"—")}</div>
+          </div>
+          ${models.map(m=>`<div class="mono" style="margin-top:4px">${escapeHtml(m.name||"")} · LTV/CAC ${escapeHtml(String((m.unit_econ_sketch||{}).ltv_cac??"—"))}</div>`).join("")}
+          <div class="hint">已填入推荐主题，可点「开始验证」做全链路验证；进度在下方「工作流」。</div>
+        </div>`;
+    }
+    window.__lastHunt = r;
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="issue">${escapeHtml(e.message||String(e))}</div>`;
+  }
+}
+
+function resetListen(){ if (pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+function listen(traceId) {
+  resetListen();
+  const es = new EventSource(`/api/runs/${traceId}/stream`);
+  es.addEventListener("step", async () => { await tickGraph(); await refreshNodeLogs(); });
+  es.onerror = () => {
+    es.close();
+    pollTimer = setInterval(async () => {
+      await tickGraph();
+      await refreshNodeLogs();
+      const ev = await api(`/api/runs/${traceId}/events`);
+      const last = (ev.events||[]).at(-1);
+      if (last && (last.type==="run_paused" || last.type==="run_finished")) {
+        clearInterval(pollTimer); refreshHitl(); refreshTraces();
+        refreshRunStatusFromGraph();
+        if (last.type === "run_finished") pulseAuxTab("canvas", false);
+        if (last.type === "run_paused") {
+          showRunStatusCard({
+            state: "paused",
+            title: "验证已暂停 / 待审批",
+            meta: "请打开「审批中心」处理，或点「继续」恢复。进度仍在「工作流」里。",
+          });
+          openAux("hitl");
+        }
+      }
+    }, 1000);
+  };
+  es.addEventListener("step", async (msg) => {
+    const ev = JSON.parse(msg.data);
+    await tickGraph();
+    await refreshNodeLogs();
+    if (ev.type==="run_paused" || ev.type==="run_finished") {
+      es.close(); refreshHitl(); refreshTraces();
+      refreshRunStatusFromGraph();
+      pulseAuxTab("canvas", false);
+      if (ev.type === "run_paused") {
+        showRunStatusCard({
+          state: "paused",
+          title: "验证已暂停 / 待审批",
+          meta: "请打开「审批中心」处理，或点「继续」恢复。",
+        });
+        openAux("hitl");
+      } else if (ev.type === "run_finished") {
+        openAux("canvas");
+      }
+    }
+  });
+}
+
+async function tickGraph() {
+  if (!currentTrace) return;
+  try {
+    graph = await api(`/api/runs/${currentTrace}/graph`);
+    renderGraph();
+    refreshRunStatusFromGraph();
+    if (selectedNode) {
+      draftInputs = JSON.parse(JSON.stringify(graph.nodes[selectedNode]?.inputs || draftInputs));
+      renderIO();
+      $("nodeMeta").textContent = `${graph.nodes[selectedNode].label} · ${selectedNode} · ${graph.nodes[selectedNode].status}`;
+    }
+  } catch (_) {}
+}
+
+function fillIndustrySelect(items, preferredId) {
+  const sel = $("industrySelect");
+  if (!sel) return;
+  const rows = items || [];
+  const preferred = preferredId || "";
+  const cur = sel.value;
+  const opts = [
+    `<option value="">全行业</option>`,
+    ...rows.map(it => {
+      const id = it.id || it.name || "";
+      const name = it.name || it.id || "";
+      return `<option value="${escapeHtml(name)}" data-id="${escapeHtml(id)}">${escapeHtml(name)}</option>`;
+    }),
+    `<option value="__custom__">自定义…</option>`,
+  ];
+  sel.innerHTML = opts.join("");
+  // 恢复选中
+  let pick = "";
+  if (preferred) {
+    const hit = rows.find(it => it.id === preferred || it.name === preferred);
+    pick = hit ? (hit.name || hit.id) : preferred;
+  } else if (cur && cur !== "__custom__") {
+    pick = cur;
+  }
+  const names = new Set(rows.map(it => it.name || it.id));
+  if (pick && (pick === "" || names.has(pick) || [...sel.options].some(o => o.value === pick))) {
+    sel.value = pick;
+  } else if (pick && !names.has(pick)) {
+    // 自定义值不在列表：临时插入
+    const o = document.createElement("option");
+    o.value = pick; o.textContent = pick; o.selected = true;
+    sel.insertBefore(o, sel.lastElementChild);
+  } else {
+    sel.value = "";
+  }
+  toggleCustomIndustryInput();
+}
+
+function toggleCustomIndustryInput() {
+  const custom = $("industryCustom");
+  const sel = $("industrySelect");
+  if (!custom || !sel) return;
+  const show = sel.value === "__custom__";
+  custom.style.display = show ? "block" : "none";
+  if (show) custom.focus();
+}
+
+function getIndustryValue() {
+  const sel = $("industrySelect");
+  if (!sel) return "";
+  if (sel.value === "__custom__") return ($("industryCustom")?.value || "").trim();
+  return (sel.value || "").trim();
+}
+
+function onIndustryChange() {
+  toggleCustomIndustryInput();
+  if ($("industrySelect")?.value === "__custom__") return;
+  rememberCustomIndustry();
+  refreshTopics(true, { keepIndustry: true });
+}
+
+async function commitCustomIndustry() {
+  const name = ($("industryCustom")?.value || "").trim();
+  if (!name) return;
+  const pack = $("themePack")?.value || "local-service-leadgen";
+  try {
+    const res = await api("/api/themes/industries/custom", {
+      method: "POST",
+      body: JSON.stringify({ theme_pack: pack, name }),
+    });
+    const items = res.items || [];
+    // 重新拉全行业列表
+    const all = await api(`/api/themes/industries?theme_pack=${encodeURIComponent(pack)}&include_all=true`);
+    fillIndustrySelect(all.items || items, name);
+    $("industrySelect").value = name;
+    toggleCustomIndustryInput();
+    refreshTopics(true, { keepIndustry: true });
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+async function rememberCustomIndustry() {
+  const name = getIndustryValue();
+  if (!name) return;
+  const pack = $("themePack")?.value || "local-service-leadgen";
+  const known = [...($("industrySelect")?.options || [])].map(o => o.value);
+  if (known.includes(name)) return;
+  try {
+    await api("/api/themes/industries/custom", {
+      method: "POST",
+      body: JSON.stringify({ theme_pack: pack, name }),
+    });
+  } catch (_) {}
+}
+
+async function onThemePackChange() {
+  seenTopics = [];
+  try {
+    const pack = $("themePack").value || "local-service-leadgen";
+    const data = await api(`/api/themes/industries?theme_pack=${encodeURIComponent(pack)}&include_all=true`);
+    fillIndustrySelect(data.items || []);
+  } catch (_) {}
+  await refreshTopics(true, { keepIndustry: true });
+}
+
+async function controlRun(action) {
+  if (!currentTrace && action !== "restart") {
+    alert("请先点「开始验证」启动工作流");
+    return;
+  }
+  try {
+    if (action === "restart") {
+      if (!currentTrace) { startRun(); return; }
+      const res = await api(`/api/runs/${currentTrace}/restart`, { method: "POST", body: "{}" });
+      currentTrace = res.trace_id;
+      showRunStatusCard({
+        state: "running",
+        title: "已重新开始验证",
+        meta: `任务 ${escapeHtml(String(currentTrace).slice(0, 18))}… · 进度在下方「工作流」`,
+        pct: 5,
+      });
+      pulseAuxTab("canvas", true);
+      openAux("canvas");
+      await tickGraph();
+      listen(currentTrace);
+      $("runControlHint").textContent = `已重新开始 · ${currentTrace.slice(0, 18)}…`;
+      return;
+    }
+    const res = await api(`/api/runs/${currentTrace}/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ note: `ui_${action}` }),
+    });
+    const st = res.control?.status || action;
+    $("runControlHint").textContent = `控制：${action} → ${st}`;
+    if (action === "pause") {
+      showRunStatusCard({ state: "paused", title: "已暂停", meta: "点「继续」恢复，或打开「工作流」查看当前节点。" });
+    } else if (action === "resume") {
+      showRunStatusCard({ state: "running", title: "已继续", meta: "进度在下方「工作流」面板。" });
+      openAux("canvas");
+    } else if (action === "stop") {
+      showRunStatusCard({ state: "failed", title: "已停止", meta: "可在「运行记录」回看；或点「重新开始」。" });
+      pulseAuxTab("canvas", false);
+    }
+    await tickGraph();
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+async function applyNodeStatus() {
+  if (!currentTrace || !selectedNode) {
+    alert("请先选择节点");
+    return;
+  }
+  const status = $("nodeStatusSelect")?.value || "idle";
+  try {
+    const res = await api(`/api/runs/${currentTrace}/nodes/${selectedNode}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status, note: "ui_manual_status" }),
+    });
+    graph = res.graph;
+    renderGraph();
+    $("nodeMeta").textContent = `${graph.nodes[selectedNode].label} · ${selectedNode} · ${status}`;
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
+async function refreshTopics(forceFill, opts = {}) {
+  const box = $("topicRecBox");
+  if (box) box.textContent = "正在按行业调用真实模型推荐…";
+  try {
+    const pack = $("themePack")?.value || "local-service-leadgen";
+    const hint = $("topic")?.value?.trim() || "";
+    const industry = opts.keepIndustry || !opts.rotateIndustry
+      ? getIndustryValue()
+      : "";
+    const prevIndustry = topicRec?.industry?.id || "";
+    const exclude = (seenTopics || []).slice(-20).join(",");
+    const qs = new URLSearchParams({
+      theme_pack: pack,
+      hint,
+      industry: industry || "",
+      exclude,
+      rotate_industry: opts.rotateIndustry ? "true" : "false",
+      previous_industry: prevIndustry,
+      use_llm: "true",
+      limit: "5",
+    });
+    const data = await api(`/api/themes/recommend?${qs.toString()}`);
+    if (!data.source || String(data.source).startsWith("mock") || data.source === "fallback") {
+      throw new Error("拒绝使用 mock/离线推荐，请确认 MOCK_LLM=false 且模型 Key 可用");
+    }
+    topicRec = data;
+    if (data.industries?.length) fillIndustrySelect(data.industries, data.industry?.id);
+    else if (data.industry?.id) fillIndustrySelect([data.industry], data.industry.id);
+    const newTopics = (data.items || []).map(it => it.topic).filter(Boolean);
+    seenTopics = [...seenTopics, ...newTopics].slice(-40);
+    if (box) {
+      const src = data.source || "—";
+      const indName = data.industry?.name || "—";
+      const cur = ($("topic")?.value || "").trim();
+      box.innerHTML =
+        `<div class="rec-head">行业 <b>${escapeHtml(indName)}</b> · 来源 <span class="mono">${escapeHtml(src)}</span> · ${escapeHtml(new Date(data.generated_at||Date.now()).toLocaleTimeString())}</div>` +
+        (data.items||[]).map(it => {
+          const topic = String(it.topic || "");
+          const on = cur && topic === cur ? " selected" : "";
+          return `<button type="button" class="rec-item${on}" onclick='pickTopic(${JSON.stringify(topic)})'><b>${escapeHtml(topic)}</b><span>${escapeHtml(it.reason||"")} · score ${escapeHtml(String(it.score??"—"))}</span></button>`;
+        }).join("") || `<div class="empty-state">暂无推荐</div>`;
+    }
+    if (forceFill || (!$("topic").value.trim() && data.recommended)) {
+      $("topic").value = data.recommended || "";
+    }
+  } catch (err) {
+    topicRec = { recommended: "", items: [], source: "", industry: null, industries: [] };
+    if (box) box.innerHTML = `<span style="color:var(--danger)">真实推荐失败: ${err.message || err}</span>`;
+  }
+}
+
+function pickTopic(topic) {
+  $("topic").value = topic || "";
+  document.querySelectorAll("#topicRecBox .rec-item").forEach((el) => {
+    const title = el.querySelector("b")?.textContent || "";
+    el.classList.toggle("selected", title === topic);
+  });
+}
+
+function applyRecommended() {
+  if (topicRec.recommended) $("topic").value = topicRec.recommended;
+  else refreshTopics(true, { keepIndustry: true });
+}
+
+async function refreshMeta() {
+  const s = await api("/api/system/status");
+  $("agnesPill").textContent = s.agnes ? "模型就绪" : "模型未配置";
+  $("agnesPill").className = "pill " + (s.agnes ? "on" : "bad");
+  $("llmPill").textContent = s.mock_llm ? "演示" : "正式";
+  $("llmPill").className = "pill " + (s.mock_llm ? "warn" : "on");
+  $("profilePill").textContent = s.active_profile || "默认档位";
+  const prevPack = $("themePack").value;
+  $("themePack").innerHTML = (s.theme_packs||[]).map(p=>`<option value="${p.id}">${p.name||p.id}</option>`).join("")
+    || `<option value="local-service-leadgen">local-service-leadgen</option>`;
+  if (prevPack) $("themePack").value = prevPack;
+  try {
+    const wfs = await api("/api/workflows/templates");
+    const prevWf = $("wfTemplate")?.value;
+    if ($("wfTemplate")) {
+      $("wfTemplate").innerHTML = (wfs.items||[]).map(t =>
+        `<option value="${t.id}">${t.name||t.id}${t.description?(" · "+t.description.slice(0,28)):""}</option>`
+      ).join("") || `<option value="default-closed-loop">默认商业闭环</option>`;
+      if (prevWf) $("wfTemplate").value = prevWf;
+    }
+  } catch (_) {}
+  const profiles = await api("/api/models/profiles");
+  const groups = { builtin: [], free: [], trial: [], custom: [], other: [] };
+  for (const p of profiles.profiles) {
+    const g = p.free_catalog ? (p.group === "trial" ? "trial" : "free") : (p.custom ? "custom" : (p.group || "builtin"));
+    (groups[g] || groups.other).push(p);
+  }
+  const opt = (p) => `<option value="${p.id}" ${p.active?"selected":""}>${p.label}${p.env_ready?"":" · 待开通"}</option>`;
+  $("profileSelect").innerHTML =
+    `<optgroup label="内置">${(groups.builtin.length?groups.builtin:profiles.profiles.filter(p=>!p.free_catalog&&!p.custom)).map(opt).join("")}</optgroup>` +
+    `<optgroup label="推荐服务">${groups.free.map(opt).join("") || "<option disabled>无</option>"}</optgroup>` +
+    `<optgroup label="试用服务">${groups.trial.map(opt).join("") || "<option disabled>无</option>"}</optgroup>` +
+    `<optgroup label="自定义">${groups.custom.map(opt).join("") || "<option disabled>无</option>"}</optgroup>`;
+  if ($("freeCatalogHint")) {
+    $("freeCatalogHint").style.display = "none";
+    $("freeCatalogHint").textContent = "";
+  }
+  try {
+    const free = await api("/api/models/free-catalog");
+    window.__freeCatalog = free.providers || [];
+    $("freeProvider").innerHTML = (free.providers||[]).map(p =>
+      `<option value="${p.id}">${p.group==="trial"?"[试用] ":""}${p.label}${p.env_ready?"":" · 待开通"}</option>`
+    ).join("") || `<option value="">暂无</option>`;
+    onFreeProviderChange();
+  } catch (_) {}
+  try {
+    const bind = await api("/api/bindings");
+    catalogs = bind.catalogs || catalogs;
+  } catch (_) {}
+  try {
+    const pack = $("themePack").value || "local-service-leadgen";
+    const ind = await api(`/api/themes/industries?theme_pack=${encodeURIComponent(pack)}&include_all=true`);
+    fillIndustrySelect(ind.items || [], topicRec?.industry?.id);
+    fillProjIndustryFilter(ind.items || []);
+    await loadHotIndustryCatalog();
+  } catch (_) {}
+  await refreshHitl(); await refreshTraces();
+  await refreshTopics(false, { keepIndustry: true });
+  await refreshProjectLibStats();
+  await refreshIntegrationPills();
+  await refreshHotLibStats();
+  await refreshGithubAndSyncStatus();
+  loadHotspotLanes(false, false);
+}
+
+function onFreeProviderChange() {
+  const list = window.__freeCatalog || [];
+  const id = $("freeProvider")?.value;
+  const item = list.find(p => p.id === id);
+  if (!item) {
+    $("freeModel").innerHTML = "";
+    $("freeProviderMeta").textContent = "";
+    return;
+  }
+  const models = item.models || [item.default_model];
+  const preferred = item.default_model || models[0];
+  $("freeModel").innerHTML = models.map(m =>
+    `<option value="${m}" ${m===preferred?"selected":""}>${m}</option>`
+  ).join("");
+  const envName = item.api_key_env || (item.required_env || [])[0] || "";
+  if ($("keyEnvName")) $("keyEnvName").value = envName;
+  const signup = item.signup_url || "#";
+  const btn = $("keySignupBtn");
+  if (btn) {
+    btn.href = signup;
+    btn.textContent = item.env_ready ? "查看说明" : "去开通";
+  }
+  const ready = item.env_ready ? "已开通，可直接启用" : "尚未开通，请按下方步骤配置";
+  $("freeProviderMeta").innerHTML =
+    `${escapeHtml(item.limits || "")} · ${ready}` +
+    (item.description ? `<div class="hint" style="margin-top:4px">${escapeHtml(String(item.description).slice(0,120).replace(/cheahjs\/free-llm-api-resources/gi,"").replace(/github\.com\/\S+/gi,"").trim())}</div>` : "");
+  if ($("keyGuideStatus")) {
+    $("keyGuideStatus").textContent = item.env_ready
+      ? "该服务已就绪，可直接切换，或重新粘贴密钥覆盖。"
+      : "按三步完成：开通 → 复制密钥 → 粘贴保存。";
+  }
+}
+
+async function saveAndActivateKey(){
+  const pid = $("freeProvider")?.value || $("profileSelect")?.value;
+  const key = ($("keyPaste")?.value || "").trim();
+  const envName = ($("keyEnvName")?.value || "").trim();
+  const status = $("keyGuideStatus");
+  if (!key) {
+    if (status) status.textContent = "请先粘贴访问密钥";
+    return;
+  }
+  try {
+    if (status) status.textContent = "保存中…";
+    const res = await api("/api/models/keys/save", {
+      method: "POST",
+      body: JSON.stringify({
+        provider_id: pid,
+        env_name: envName,
+        api_key: key,
+        write_dotenv: !!$("keyWriteDotenv")?.checked,
+        activate: true,
+      }),
+    });
+    if ($("keyPaste")) $("keyPaste").value = "";
+    if (status) {
+      status.innerHTML = `密钥已保存（${escapeHtml(res.masked||"****")}）` +
+        ` · 当前档位 ${escapeHtml(res.active_profile||"—")}`;
+    }
+    await refreshMeta();
+  } catch (e) {
+    if (status) status.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}</span>`;
+  }
+}
+
+async function onProfileSelectChange(id){
+  const list = window.__freeCatalog || [];
+  const free = list.find(p => p.id === id);
+  if (free && $("freeProvider")) {
+    $("freeProvider").value = id;
+    onFreeProviderChange();
+  }
+  // 有 Key 才直接切换；缺 Key 时只展示引导
+  try {
+    await api("/api/models/profiles/switch", { method:"POST", body: JSON.stringify({ profile_id: id }) });
+    await refreshMeta();
+  } catch (e) {
+    const status = $("keyGuideStatus");
+    if (status) status.innerHTML = `无法切换：${escapeHtml(e.message||String(e))}。请先按引导保存访问密钥。`;
+  }
+}
+
+async function activateFreeModel() {
+  const pid = $("freeProvider").value;
+  const model = $("freeModel").value;
+  if (!pid || !model) return;
+  try {
+    await api("/api/models/profiles/switch", {
+      method: "POST",
+      body: JSON.stringify({ profile_id: pid, model })
+    });
+    await refreshMeta();
+  } catch (e) {
+    const status = $("keyGuideStatus");
+    if (status) status.innerHTML = `<span class="issue">${escapeHtml(e.message||String(e))}。请先保存访问密钥。</span>`;
+  }
+}
+
+async function switchProfile(id){ await onProfileSelectChange(id); }
+
+async function addCustom(){
+  await api("/api/models/custom",{method:"POST",body:JSON.stringify({
+    label:$("cLabel").value.trim(), api_base:$("cBase").value.trim(), api_key:$("cKey").value.trim(), model:$("cModel").value.trim()
+  })});
+  $("cKey").value=""; refreshMeta();
+}
+
+async function refreshHitl(){
+  const data = await api("/api/hitl?status=pending");
+  if (!data.items?.length) { $("hitlBox").innerHTML = `<div class="empty">暂无待审批</div>`; return; }
+  $("hitlBox").innerHTML = data.items.map(t => {
+    const rec = t.body?.opportunity?.recommended || t.body?.business_model?.positioning || "";
+    const budget = t.body?.business_model?.budget_cap_test_cny ?? t.body?.spend_cap_cny ?? "—";
+    return `
+    <div class="hitl-card" onclick='openHitlDashboard("${t.id}")'>
+      <div><strong>${escapeHtml(t.title||"")}</strong></div>
+      <div class="mono">${escapeHtml(t.gate||"")} · ${escapeHtml((t.trace_id||"").slice(0,13))}…${t.body?.needs_override ? " · 需覆写" : ""}</div>
+      <div class="hint" style="margin-top:6px">${escapeHtml(String(rec).slice(0,80))}</div>
+      <div class="mono" style="margin-top:4px">预算参考 ¥${escapeHtml(String(budget))}</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn signal" onclick='event.stopPropagation();openHitlDashboard("${t.id}")'>打开审批</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function closeHitlModal(){ $("hitlModal").style.display="none"; }
+
+function abcBar(label, value){
+  const v = Math.max(0, Math.min(1, Number(value)||0));
+  return `<div class="bar-row"><span>${escapeHtml(label)}</span><div class="bar-track"><div class="bar-fill" style="width:${(v*100).toFixed(0)}%"></div></div><span>${v.toFixed(2)}</span></div>`;
+}
+
+function radarSvg(a,b,c){
+  const vals=[a,b,c].map(x=>Math.max(0,Math.min(1,Number(x)||0)));
+  const cx=90, cy=78, r=54;
+  const angles=[-Math.PI/2, -Math.PI/2+2*Math.PI/3, -Math.PI/2+4*Math.PI/3];
+  const pts = vals.map((v,i)=>{
+    const x = cx + Math.cos(angles[i])*r*v;
+    const y = cy + Math.sin(angles[i])*r*v;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const grid = [0.33,0.66,1].map(s=>{
+    const g = angles.map(ang=>`${(cx+Math.cos(ang)*r*s).toFixed(1)},${(cy+Math.sin(ang)*r*s).toFixed(1)}`).join(" ");
+    return `<polygon points="${g}" fill="none" stroke="#2a331c" stroke-width="1"/>`;
+  }).join("");
+  const labels = [
+    {t:"A 可验证", x:cx, y:12},
+    {t:"B 付费", x:150, y:130},
+    {t:"C 缺口", x:20, y:130},
+  ].map(L=>`<text x="${L.x}" y="${L.y}" fill="#9aa38a" font-size="10" text-anchor="middle">${L.t}</text>`).join("");
+  return `<svg viewBox="0 0 180 150" width="100%" height="150">${grid}<polygon points="${pts}" fill="rgba(198,240,0,.22)" stroke="#c6f000" stroke-width="2"/>${labels}</svg>`;
+}
+
+function funnelSvg(tam, sam, som){
+  const norm = (v)=>{
+    const s = String(v==null||v===""?"证据不足未估":v);
+    if (/^unknown$/i.test(s.trim())) return "证据不足未估";
+    return s;
+  };
+  const labs=[
+    {l:"TAM 总市场", v:norm(tam), w:160, c:"#3a4a28"},
+    {l:"SAM 可服务", v:norm(sam), w:120, c:"#4a5a20"},
+    {l:"SOM 可拿份额", v:norm(som), w:80, c:"#6b8a18"},
+  ];
+  return `<svg viewBox="0 0 180 140" width="100%" height="140">${labs.map((r,i)=>{
+    const x=(180-r.w)/2, y=12+i*42;
+    const tv=escapeHtml(r.v).slice(0,28);
+    return `<rect x="${x}" y="${y}" width="${r.w}" height="34" rx="6" fill="${r.c}" opacity=".85"/>
+      <text x="90" y="${y+14}" fill="#dfe8c8" font-size="10" text-anchor="middle">${r.l}</text>
+      <text x="90" y="${y+28}" fill="#c6f000" font-size="9" text-anchor="middle">${tv}</text>`;
+  }).join("")}</svg>`;
+}
+
+function fiveDimRadarSvg(dims){
+  const order=["demand","market","unit_economics","moat","execution"];
+  const labels=["需求","市场","经济","护城河","执行"];
+  const vals=order.map(k=>{
+    const s=Number((dims&&dims[k]||{}).score);
+    return Math.max(0, Math.min(1, Number.isFinite(s)?s:0.4));
+  });
+  const n=5, cx=90, cy=78, R=52;
+  const xy=(i,r)=>{const ang=-Math.PI/2+i*2*Math.PI/n; return [cx+r*Math.cos(ang), cy+r*Math.sin(ang)];};
+  const grid=[0.33,0.66,1].map(s=>{
+    const p=vals.map((_,i)=>xy(i,R*s).join(",")).join(" ");
+    return `<polygon points="${p}" fill="none" stroke="#2a3322"/>`;
+  }).join("");
+  const poly=vals.map((v,i)=>xy(i,R*v).join(",")).join(" ");
+  const lab=labels.map((t,i)=>{const [x,y]=xy(i,R+14); return `<text x="${x}" y="${y}" fill="#9aa38a" font-size="9" text-anchor="middle">${t}</text>`;}).join("");
+  return `<svg viewBox="0 0 180 160" width="100%" height="160">${grid}<polygon points="${poly}" fill="rgba(198,240,0,.2)" stroke="#c6f000" stroke-width="2"/>${lab}</svg>`;
+}
+
+function ueBarsSvg(ue){
+  const cac=Number(ue?.cac_full)||0, ltv=Number(ue?.ltv)||0, contrib=Number(ue?.contribution_ex_cac)||0;
+  const max=Math.max(cac, ltv, Math.abs(contrib), 1);
+  const bar=(x,val,color,label)=>{
+    const h=Math.max(2,(Math.abs(val)/max)*90), y=110-h;
+    return `<rect x="${x}" y="${y}" width="28" height="${h}" fill="${color}" rx="4"/>
+      <text x="${x+14}" y="124" fill="#9aa38a" font-size="9" text-anchor="middle">${label}</text>
+      <text x="${x+14}" y="${y-4}" fill="#dfe8c8" font-size="9" text-anchor="middle">${Math.round(val)}</text>`;
+  };
+  return `<svg viewBox="0 0 180 140" width="100%" height="140">${bar(30,cac,"#6b3030","CAC")}${bar(76,ltv,"#3a5a28","LTV")}${bar(122,contrib,"#5a6b20","贡献")}</svg>`;
+}
+
+function verdictMeterSvg(rec){
+  const map={strongly_recommend:0.92, cautious_try:0.55, abandon:0.18};
+  const v=map[String(rec||"").toLowerCase()] ?? 0.4;
+  const angle=(-90+v*180)*Math.PI/180;
+  const x=90+60*Math.cos(angle), y=100+60*Math.sin(angle);
+  return `<svg viewBox="0 0 180 120" width="100%" height="120">
+    <path d="M30 100 A60 60 0 0 1 150 100" fill="none" stroke="#2a3322" stroke-width="10"/>
+    <path d="M30 100 A60 60 0 0 1 150 100" fill="none" stroke="#c6f000" stroke-width="10" stroke-dasharray="${(v*188).toFixed(0)} 200"/>
+    <line x1="90" y1="100" x2="${x}" y2="${y}" stroke="#f0d78c" stroke-width="2"/>
+    <circle cx="90" cy="100" r="4" fill="#c6f000"/>
+    <text x="90" y="30" fill="#dfe8c8" font-size="11" text-anchor="middle">裁决强度</text>
+  </svg>`;
+}
+
+function renderHuntPanel(hunt){
+  if (!hunt || typeof hunt !== "object") return "";
+  const p1=hunt.phase1_macro||{}, p2=hunt.phase2_micro||{}, p3=hunt.phase3_rebuild||{}, p4=hunt.phase4_verdict||{};
+  const models=(p3.models||[]).slice(0,2);
+  const tracks=(p1.cross_tracks||[]).slice(0,3);
+  return `
+    <div class="dash-card full">
+      <h4>狩猎结论 ${recBadge(p4.recommendation)}</h4>
+      <div class="mono" style="margin-bottom:6px">${escapeHtml(hunt.recommended_opportunity||hunt.recommended_topic||"—")}</div>
+      <div class="phase-rail">
+        <div class="phase-pill"><b>赛道</b>${escapeHtml(tracks.map(t=>t.name).join(" · ")||"—")}</div>
+        <div class="phase-pill"><b>痛点</b>${escapeHtml(p2.pain_level||"—")} / ${escapeHtml(p2.painkiller_or_vitamin||"—")}</div>
+        <div class="phase-pill"><b>模式</b>${escapeHtml(p3.preferred_model||"—")}</div>
+        <div class="phase-pill"><b>LTV/CAC</b>${escapeHtml(p4.ltv_cac_check||"—")}</div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box"><div class="cap">非共识</div>
+          <div class="hint">${escapeHtml(((p4.non_consensus||{}).opportunity||"—").toString().slice(0,100))}</div>
+          <div class="hint">险：${escapeHtml(((p4.non_consensus||{}).hidden_risk||"—").toString().slice(0,80))}</div>
+        </div>
+        <div class="chart-box"><div class="cap">MVP / 止损</div>
+          <div class="mono">¥${escapeHtml(String((p4.mvp||{}).budget_cny??"—"))} · ${escapeHtml(((p4.mvp||{}).success_metric||"—").toString().slice(0,40))}</div>
+          <div class="hint">${escapeHtml(((p4.mvp||{}).stop_loss||"—").toString().slice(0,72))}</div>
+        </div>
+        ${models.map(m=>{
+          const u=m.unit_econ_sketch||{};
+          return `<div class="chart-box"><div class="cap">${escapeHtml(m.name||"模式")}</div>
+            <div class="mono">LTV/CAC ${u.ltv_cac??"—"} · 毛利 ${u.gross_margin??"—"} · 回本 ${u.payback_months??"—"}月</div>
+            <div class="hint">${escapeHtml((m.shift||m.leverage||"").toString().slice(0,64))}</div></div>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
+async function openHitlDashboard(id){
+  const t = await api(`/api/hitl/${id}`);
+  currentTrace = t.trace_id;
+  try { graph = await api(`/api/runs/${t.trace_id}/graph`); renderGraph(); } catch(_){}
+  const body = t.body || {};
+  const opp = body.opportunity || {};
+  const bm = body.business_model || {};
+  const rt = body.redteam || {};
+  let brief = body.decision_brief || null;
+  const top = (opp.opportunities||[])[0] || {};
+  const scores = top.scores || {};
+  const a = scores.A_validate_ease ?? top.validate_ease ?? 0;
+  const b = scores.B_willingness_to_pay ?? top.willingness_to_pay ?? 0;
+  const c = scores.C_competition_gap ?? top.competition_gap ?? 0;
+  const composite = scores.composite ?? ((Number(a)+Number(b)+Number(c))/3);
+  const comps = (opp.competitors||[]).slice(0,5).map(x=>`
+    <div class="comp-row"><b>${escapeHtml(x.name||"—")}</b>
+      <div class="hint">${escapeHtml(x.positioning||"")}</div>
+      <div class="mono">缺口: ${escapeHtml(x.gap||"—")}</div>
+    </div>`).join("") || `<div class="empty">暂无竞品</div>`;
+  const issues = (rt.issues||[]).map(i=>`<div class="issue">${escapeHtml(i)}</div>`).join("");
+  const soft = (rt.soft_issues||rt.warnings||[]).map(i=>`<div class="issue soft">${escapeHtml(i)}</div>`).join("");
+  const pricing = bm.pricing || {};
+  const ue = bm.unit_economics || {};
+  const budgetDefault = bm.budget_cap_test_cny ?? body.spend_cap_cny ?? 200;
+  const isAds = t.gate === "paid_ads";
+  const defaults = (brief && brief.calculator_defaults) || {};
+  const seed = {
+    price_cny: defaults.price_cny ?? (pricing.plans?.[0]?.price_cny) ?? 199,
+    ad_spend: defaults.ad_spend ?? pricing.cpl_target_cny ?? 35,
+    sales_commission: defaults.sales_commission ?? 10,
+    channel_rebate: defaults.channel_rebate ?? 0,
+    demo_labor_cost: defaults.demo_labor_cost ?? 40,
+    delivery_labor_hours: defaults.delivery_labor_hours ?? 0.5,
+    labor_hourly_cny: defaults.labor_hourly_cny ?? 80,
+    bad_case_rate: defaults.bad_case_rate ?? 0.15,
+    monthly_fixed_cost: defaults.monthly_fixed_cost ?? 3000,
+    rd_amortization_cny: defaults.rd_amortization_cny ?? 5000,
+    monthly_orders: defaults.monthly_orders ?? 20,
+    funding_cost_per_order: defaults.funding_cost_per_order ?? 0,
+    bad_debt_reserve_rate: defaults.bad_debt_reserve_rate ?? 0.03,
+    ltv_months: defaults.ltv_months ?? 6,
+    gross_margin: defaults.gross_margin ?? ue.gross_margin_est ?? 0.55,
+    test_budget_cny: defaults.test_budget_cny ?? budgetDefault,
+  };
+  window.__hitlCalcSeed = seed;
+  window.__hitlTaskId = id;
+  window.__hitlBrief = brief;
+  const hunt = opp.hunt_report || brief?.hunt_report || null;
+  const riskDims = brief?.risk?.five_dimensions || {};
+  const mkt = brief?.risk?.market || {};
+  const liveUe = brief?.unit_economics || {};
+  const rec = brief?.risk?.verdict?.recommendation || opp.recommendation || (hunt?.phase4_verdict||{}).recommendation;
+  const huntRec = (hunt?.phase4_verdict||{}).recommendation || (brief?.risk?.hunt_digest||{}).recommendation;
+  const conflict = huntRec && rec && String(huntRec).toLowerCase()!==String(rec).toLowerCase();
+  const projects = brief?.recommended_projects || null;
+
+  const html = `
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div>
+        <h2>${escapeHtml(t.title||"人工确认")}</h2>
+        <div class="sub">${escapeHtml(t.gate||"")} · Trace ${escapeHtml((t.trace_id||"").slice(0,18))}… ${body.needs_override?"· 红队未通过需覆写":""}</div>
+        ${conflict?`<div class="alert-line">狩猎裁决「${escapeHtml(String(huntRec))}」与审批结论「${escapeHtml(String(rec))}」不一致：以单位经济与合规结论为准。</div>`:""}
+        ${brief?.risk?.degraded?`<div class="alert-line" title="${escapeHtml(brief?.risk?.error_raw||brief?.risk?.error||"")}">简报已降级：${escapeHtml((brief?.risk?.error||"请人工复核").toString().slice(0,120))}</div>`:""}
+      </div>
+      <button class="btn ghost" onclick="closeHitlModal()">关闭</button>
+    </div>
+    ${isAds?"":`
+    <div class="chart-row" style="margin-bottom:12px">
+      <div class="chart-box"><div class="cap">${tip("ABC 商机雷达","abc")}</div>${radarSvg(a,b,c)}</div>
+      <div class="chart-box"><div class="cap">${tip("五维验证雷达","five")}</div>${fiveDimRadarSvg(riskDims)}</div>
+      <div class="chart-box"><div class="cap">${tip("TAM / SAM / SOM","tam")}</div>${funnelSvg(mkt.tam, mkt.sam, mkt.som)}</div>
+      <div class="chart-box"><div class="cap">${tip("单位经济 · CAC/LTV/贡献","ue")}</div>${ueBarsSvg(liveUe)}</div>
+      <div class="chart-box"><div class="cap">${tip("裁决仪表","verdict")} ${recBadge(rec)}</div>${verdictMeterSvg(rec)}</div>
+    </div>
+    ${renderHuntPanel(hunt)}
+    <div class="dash-card full" style="margin-bottom:12px">
+      <h4>${tip("推荐落地项目（与商机主题挂钩）","hunt")}</h4>
+      <div class="hint" style="margin-bottom:8px">按相关分过滤；支持单项目或组合一键生成落地方案（复用映射 + 两周 MVP）</div>
+      <div id="hitlProjectBox">${(projects?.portfolio || projects?.items?.length)
+        ? renderOpportunityPortfolio(projects, {
+            topic: projects.topic || opp.recommended || top.name || "",
+            industry: projects.industry || (opp.industry && opp.industry.name) || "",
+            opportunity_context: opp.selection_rationale || top.pain || "",
+          })
+        : `<div class="hint">加载中…</div>`}</div>
+    </div>`}
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h4>商机推荐</h4>
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">${escapeHtml(opp.recommended||top.name||"—")}</div>
+        <div class="hint">${escapeHtml(opp.selection_rationale||top.pain||"")}</div>
+        <div class="score-pill" style="margin-top:8px">
+          ${top.pain_level?`<span>痛点 ${escapeHtml(String(top.pain_level))}</span>`:""}
+          ${top.painkiller_or_vitamin?`<span>${escapeHtml(String(top.painkiller_or_vitamin))}</span>`:""}
+          ${opp.recommendation?`<span>${escapeHtml(String(opp.recommendation))}</span>`:""}
+        </div>
+        ${top.current_alternative?`<div class="hint" style="margin-top:6px">现有替代：${escapeHtml(top.current_alternative)}</div>`:""}
+        ${top.stop_loss_hint?`<div class="mono">止损提示：${escapeHtml(top.stop_loss_hint)}</div>`:""}
+        <div class="score-pill" style="margin-top:10px">
+          <span>综合 ${Number(composite||0).toFixed(2)}</span>
+          <span>A ${Number(a||0).toFixed(2)}</span>
+          <span>B ${Number(b||0).toFixed(2)}</span>
+          <span>C ${Number(c||0).toFixed(2)}</span>
+        </div>
+        ${abcBar("A 可验证", a)}${abcBar("B 付费", b)}${abcBar("C 竞争缺口", c)}
+        <div class="hint">验证步骤：${escapeHtml(((top.validation_steps||[]).slice(0,3).join(" → "))||"—")}</div>
+      </div>
+      <div class="dash-card">
+        <h4>商业模式与预算</h4>
+        <div class="hint">定位：${escapeHtml(bm.positioning||"—")}</div>
+        <div class="mono" style="margin-top:8px">定价 ${escapeHtml(pricing.model||"—")} · CPL目标 ¥${escapeHtml(String(pricing.cpl_target_cny??"—"))}</div>
+        <div class="mono">毛利估 ${(ue.gross_margin_est??"—")} · 回本月 ${(ue.payback_months??"—")}</div>
+        <div class="field" style="margin-top:10px">
+          <label>${isAds?"投放花费 CNY":"测试预算上限 CNY"}</label>
+          <input id="hitlBudget" type="number" min="0" max="10000" value="${Number(budgetDefault)||200}" oninput="syncTestBudgetFromHitl()" />
+        </div>
+        <div class="field"><label>审批备注</label><textarea id="hitlNote" placeholder="可选：确认理由 / 覆写说明"></textarea></div>
+        ${isAds?"":`
+        <details class="risk-fold" open>
+          <summary>深度风险与生存评估 · 五维+专家质询 ${statusBadge((brief?.risk?.compliance?.overall)||"warn")} ${brief?.risk?.verdict?.recommendation?recBadge(brief.risk.verdict.recommendation):""}</summary>
+          <div class="risk-body" id="deepRiskBody">${renderDeepRisk(brief)}</div>
+          <div class="row" style="padding:0 12px 12px">
+            <button class="btn ghost" type="button" onclick="refreshDecisionBrief('${id}')">刷新穿透简报</button>
+          </div>
+        </details>`}
+      </div>
+      <div class="dash-card">
+        <h4>红队结果</h4>
+        <div class="mono">gate=${escapeHtml(String(rt.gate??"—"))} · passed=${escapeHtml(String(rt.passed??"—"))}</div>
+        ${issues||`<div class="hint" style="margin-top:8px">无硬性问题</div>`}
+        ${soft}
+      </div>
+      <div class="dash-card">
+        <h4>竞品与差距</h4>
+        ${comps}
+      </div>
+      ${isAds?"":`
+      <div class="dash-card full">
+        <details class="risk-fold">
+          <summary>单位经济计算器（展开微调）</summary>
+          <div class="risk-body">
+        <div class="hint">CAC 含广告+提成+返点+Demo；交付边际含 Bad Case 人工兜底。</div>
+        <div class="calc-grid" id="ueCalcInputs" style="margin-top:10px">
+          ${ueInput("price_cny","客单价/服务费",seed.price_cny)}
+          ${ueInput("ad_spend","广告获客",seed.ad_spend)}
+          ${ueInput("sales_commission","销售提成",seed.sales_commission)}
+          ${ueInput("channel_rebate","渠道返点",seed.channel_rebate)}
+          ${ueInput("demo_labor_cost","Demo人力",seed.demo_labor_cost)}
+          ${ueInput("delivery_labor_hours","交付工时(h)",seed.delivery_labor_hours,0.1)}
+          ${ueInput("labor_hourly_cny","时薪",seed.labor_hourly_cny)}
+          ${ueInput("bad_case_rate","Bad Case率",seed.bad_case_rate,0.01)}
+          ${ueInput("funding_cost_per_order","资金成本/单",seed.funding_cost_per_order)}
+          ${ueInput("bad_debt_reserve_rate","坏账预提率",seed.bad_debt_reserve_rate,0.01)}
+          ${ueInput("gross_margin","毛利率",seed.gross_margin,0.01)}
+          ${ueInput("ltv_months","LTV月数",seed.ltv_months)}
+          ${ueInput("monthly_orders","月均单量",seed.monthly_orders)}
+          ${ueInput("monthly_fixed_cost","月固定成本",seed.monthly_fixed_cost)}
+          ${ueInput("rd_amortization_cny","研发摊销",seed.rd_amortization_cny)}
+          ${ueInput("test_budget_cny","测试预算",seed.test_budget_cny)}
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn signal" type="button" onclick="recalcUnitEconomics()">重新测算</button>
+          <span class="hint" id="ueCalcStatus">加载测算…</span>
+        </div>
+        <div id="ueCalcResult"></div>
+          </div>
+        </details>
+      </div>`}
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn signal" onclick='submitHitlDecision("${t.id}",true,${isAds?"true":"false"})'>${body.needs_override?"覆写并批准":"确认并继续"}</button>
+      <button class="btn" onclick='submitHitlDecision("${t.id}",false,${isAds?"true":"false"})'>拒绝</button>
+      ${isAds?"":`<button class="btn copper" type="button" onclick='handoffToPaperclip("${t.id}")'>创建落地任务</button>`}
+    </div>
+    ${isAds?"":`<div class="hint" id="paperclipHandoffStatus" style="margin-top:8px">确认后可创建落地任务与拆解清单。</div>`}`;
+  $("hitlModalBody").innerHTML = html;
+  $("hitlModal").style.display = "flex";
+  if (!isAds) {
+    await recalcUnitEconomics();
+    if (!brief) {
+      // 旧任务无简报时自动补齐一次
+      refreshDecisionBrief(id);
+    } else if (!projects?.items?.length && !projects?.portfolio) {
+      const topic = opp.recommended || top.name || $("topic")?.value || "";
+      const industry = (opp.industry && opp.industry.name) || "";
+      try {
+        const linked = await loadOpportunityPortfolio(topic, industry, opp.selection_rationale || top.pain || "");
+        const pack = {
+          topic,
+          industry,
+          note: "已按商机主题相关性匹配；含单项目与可落地组合。",
+          items: linked.portfolio?.singles || [],
+          portfolio: linked.portfolio,
+          landing_plan: linked.landing_plan,
+        };
+        const box = $("hitlProjectBox");
+        if (box) box.innerHTML = renderOpportunityPortfolio(pack, {
+          topic,
+          industry,
+          opportunity_context: opp.selection_rationale || top.pain || "",
+        });
+      } catch (_) {
+        const box = $("hitlProjectBox");
+        if (box) box.innerHTML = `<div class="empty">项目推荐暂不可用</div>`;
+      }
+    }
+  }
+}
+
+function ueInput(key, label, value, step){
+  const s = step ?? 1;
+  return `<div class="field"><label>${escapeHtml(label)}</label>
+    <input data-ue="${key}" type="number" step="${s}" value="${Number(value)||0}" onchange="recalcUnitEconomics()" /></div>`;
+}
+
+function statusBadge(status){
+  const s = String(status||"warn").toLowerCase();
+  const map = {pass:"通过", ok:"通过", warn:"警告", block:"阻断"};
+  const cls = s==="pass"||s==="ok" ? "pass" : (s==="block" ? "block" : "warn");
+  return `<span class="badge ${cls}">${map[s]||s}</span>`;
+}
+
+function recBadge(rec){
+  const r = String(rec||"").toLowerCase();
+  if (r==="strongly_recommend") return `<span class="badge strong">强烈推荐</span>`;
+  if (r==="abandon") return `<span class="badge abandon">建议放弃</span>`;
+  if (r==="cautious_try") return `<span class="badge cautious">谨慎尝试</span>`;
+  return statusBadge(r||"warn");
+}
+
+function painBadge(level){
+  const L = String(level||"").toLowerCase();
+  if (L==="high") return `<span class="badge block">痛点高</span>`;
+  if (L==="mid") return `<span class="badge warn">痛点中</span>`;
+  if (L==="low") return `<span class="badge pass">痛点低</span>`;
+  return `<span class="badge">${escapeHtml(level||"—")}</span>`;
+}
+
+function renderDeepRisk(brief){
+  if (!brief || !brief.risk) {
+    return `<div class="hint">暂无穿透简报。点「刷新」生成。</div>`;
+  }
+  const r = brief.risk;
+  const verdict = r.verdict || {};
+  const dims = r.five_dimensions || {};
+  const ei = r.expert_interrogation || {};
+  const comp = r.compliance || {};
+  const ch = r.channel_dependency || {};
+  const ex = r.exit_and_pivot || {};
+  const asym = r.asymmetric_competition || {};
+  const mkt = r.market || (dims.market||{});
+  const ue = (brief.unit_economics)||{};
+  const demand = dims.demand || {};
+  const paths = (r.monetization_paths||[]).slice(0,3);
+  const kills = (ei.kill_factors||[]).slice(0,3);
+  const must = (verdict.must_fix_before_go||[]).slice(0,3);
+  const reasons = (verdict.reasons||[]).slice(0,3);
+  const compHits = (comp.items||[]).filter(i => String(i.status).toLowerCase() !== "pass").slice(0,3);
+
+  const dimOrder = [
+    ["demand","需求"],["market","市场"],["unit_economics","经济"],["moat","护城河"],["execution","落地"]
+  ];
+  const dimCards = dimOrder.map(([key,label])=>{
+    const d = dims[key]||{};
+    const one =
+      key==="demand" ? `${d.painkiller_or_vitamin||"—"} / ${d.pain_level||"—"}` :
+      key==="market" ? `${d.trend||mkt.trend||"—"}` :
+      key==="unit_economics" ? `LTV/CAC ${d.ltv_cac_rule||ue.ltv_cac_rule||"—"}` :
+      key==="moat" ? `${d.switching_cost||asym.migration_cost||"—"}迁移` :
+      `${(d.stop_loss||ex.stop_loss||"—").toString().slice(0,24)}`;
+    return `<div class="dim-card"><div class="t">${label} ${escapeHtml(String(d.score??""))}</div>
+      <div class="mono">${escapeHtml(one)}</div></div>`;
+  }).join("");
+
+  return `
+    <div class="risk-section">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        ${recBadge(verdict.recommendation)}
+        ${statusBadge(comp.overall||"warn")} 合规
+        ${painBadge(demand.pain_level)}
+        ${ch.single_dependency?`<span class="badge block">渠道单一依赖</span>`:""}
+        ${ue.is_outsourcing_risk?`<span class="badge block">外包化风险</span>`:""}
+      </div>
+      <div class="chart-row">
+        <div class="chart-box"><div class="cap">${tip("裁决","verdict")}</div>${verdictMeterSvg(verdict.recommendation)}</div>
+        <div class="chart-box"><div class="cap">${tip("五维","five")}</div>${fiveDimRadarSvg(dims)}</div>
+        <div class="chart-box"><div class="cap">${tip("TAM→SOM","tam")}</div>${funnelSvg(mkt.tam, mkt.sam, mkt.som)}</div>
+        <div class="chart-box"><div class="cap">${tip("CAC / LTV / 贡献","ue")}</div>${ueBarsSvg(ue)}</div>
+      </div>
+      <div class="dim-grid">${dimCards}</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box">
+        <div class="cap">核心结论</div>
+        <div class="mono">${escapeHtml((verdict.summary||"").slice(0,160)||"—")}</div>
+        ${reasons.map(x=>`<div class="hint">· ${escapeHtml(String(x).slice(0,80))}</div>`).join("")}
+      </div>
+      <div class="chart-box">
+        <div class="cap">观点方案</div>
+        ${paths.length?paths.map(p=>`<div class="mono">▶ ${escapeHtml(p.name||"—")} <span class="hint">${escapeHtml((p.how||"").slice(0,48))}</span></div>`).join(""):
+          `<div class="mono">▶ ${(ex.pivot_paths||[])[0]|| (r.hunt_digest||{}).preferred_model || "补齐变现路径"}</div>`}
+        <div class="hint" style="margin-top:6px">止损：${escapeHtml((ex.stop_loss||"—").toString().slice(0,72))}</div>
+        <div class="hint">MVP预算：${escapeHtml(String((r.hunt_digest||{}).mvp_budget ?? "—"))}</div>
+      </div>
+      <div class="chart-box">
+        <div class="cap">红线 / 致死 / 放行条件</div>
+        ${compHits.map(i=>`<div class="mono">${statusBadge(i.status)} ${escapeHtml(i.title||"—")}</div>`).join("")||`<div class="hint">合规无阻断项</div>`}
+        ${kills.map(k=>`<div class="hint">☠ ${escapeHtml((k.risk||"").slice(0,40))} → ${escapeHtml((k.plan_b||"").slice(0,36))}</div>`).join("")}
+        ${must.map(m=>`<div class="mono">□ ${escapeHtml(String(m).slice(0,56))}</div>`).join("")}
+      </div>
+      <div class="chart-box">
+        <div class="cap">非共识</div>
+        <div class="hint">机会：${escapeHtml(((ei.non_consensus||{}).opportunity||(r.hunt_digest||{}).non_consensus||"—").toString().slice(0,90))}</div>
+        <div class="hint">隐患：${escapeHtml(((ei.non_consensus||{}).hidden_risk||"—").toString().slice(0,90))}</div>
+        <div class="mono" style="margin-top:6px">巨头防御：${escapeHtml(((ei.moat_vs_giant||{}).a||asym.defense||"—").toString().slice(0,72))}</div>
+      </div>
+    </div>
+    ${r.degraded?`<div class="alert-line">简报降级，请人工复核</div>`:""}`;
+}
+
+function collectUeInputs(){
+  const out = {};
+  document.querySelectorAll("[data-ue]").forEach(el=>{
+    const k = el.getAttribute("data-ue");
+    const n = Number(el.value);
+    out[k] = Number.isFinite(n) ? n : 0;
+  });
+  return out;
+}
+
+function syncTestBudgetFromHitl(){
+  const b = $("hitlBudget");
+  const ueBudget = document.querySelector('[data-ue="test_budget_cny"]');
+  if (b && ueBudget) {
+    ueBudget.value = b.value;
+    recalcUnitEconomics();
+  }
+}
+
+async function recalcUnitEconomics(){
+  const status = $("ueCalcStatus");
+  const box = $("ueCalcResult");
+  if (!box) return;
+  if (status) status.textContent = "测算中…";
+  try {
+    const inputs = collectUeInputs();
+    const res = await api("/api/decision/unit-economics/calc", {
+      method: "POST",
+      body: JSON.stringify(inputs),
+    });
+    const u = res.result || {};
+    const alerts = (u.alerts||[]).map(a=>`<div class="alert-line">⚠ ${escapeHtml(a)}</div>`).join("");
+    box.innerHTML = `
+      <div class="ue-metrics">
+        <div class="ue-metric"><div class="k">全口径 CAC</div><div class="v">¥${u.cac_full??"—"}</div></div>
+        <div class="ue-metric"><div class="k">交付边际成本</div><div class="v">¥${u.delivery_marginal_cost??"—"}</div></div>
+        <div class="ue-metric"><div class="k">LTV / CAC</div><div class="v">${u.ltv_cac??"—"}</div></div>
+        <div class="ue-metric"><div class="k">回本周期</div><div class="v">${u.payback_months!=null?u.payback_months+" 月":"无法回本"}</div></div>
+        <div class="ue-metric"><div class="k">单笔贡献(不含获客)</div><div class="v">¥${u.contribution_ex_cac??"—"}</div></div>
+        <div class="ue-metric"><div class="k">含获客净贡献</div><div class="v">¥${u.contribution_incl_cac??"—"}</div></div>
+        <div class="ue-metric"><div class="k">覆盖测试预算客户数</div><div class="v">${u.customers_to_cover_test_budget??"—"}</div></div>
+        <div class="ue-metric"><div class="k">覆盖测试+研发客户数</div><div class="v">${u.customers_to_cover_test_and_rd??"—"}</div></div>
+      </div>
+      <div style="margin-top:8px">${statusBadge(u.status)} ${u.is_outsourcing_risk?'<span class="badge block">外包化风险</span>':""}</div>
+      ${alerts}
+      <div class="hint" style="margin-top:6px">${escapeHtml(u.formula_note||"")}</div>`;
+    if (status) status.textContent = "已更新";
+  } catch (e) {
+    if (status) status.textContent = "测算失败";
+    box.innerHTML = `<div class="issue">${escapeHtml(String(e.message||e))}</div>`;
+  }
+}
+
+async function refreshDecisionBrief(id){
+  const bodyEl = $("deepRiskBody");
+  if (bodyEl) bodyEl.innerHTML = `<div class="hint">正在生成穿透简报…</div>`;
+  try {
+    const res = await api(`/api/hitl/${id}/decision-brief/refresh`, {
+      method: "POST",
+      body: JSON.stringify({ persist: true }),
+    });
+    window.__hitlBrief = res.decision_brief;
+    if (bodyEl) bodyEl.innerHTML = renderDeepRisk(res.decision_brief);
+    const pbox = $("hitlProjectBox");
+    const rp = res.decision_brief?.recommended_projects;
+    if (pbox && (rp?.portfolio || rp?.items?.length)) {
+      pbox.innerHTML = renderOpportunityPortfolio(rp, {
+        topic: rp.topic || "",
+        industry: rp.industry || "",
+        opportunity_context: "",
+      });
+    }
+    // 用新 defaults 同步计算器（不强制覆盖用户已改数字，仅当无输入时）
+    const defs = res.decision_brief?.calculator_defaults;
+    if (defs) {
+      Object.keys(defs).forEach(k=>{
+        const el = document.querySelector(`[data-ue="${k}"]`);
+        if (el && !el.dataset.touched) el.value = defs[k];
+      });
+      await recalcUnitEconomics();
+    }
+  } catch (e) {
+    if (bodyEl) bodyEl.innerHTML = `<div class="issue">${escapeHtml(String(e.message||e))}</div>`;
+  }
+}
+
+async function submitHitlDecision(id, approve, isAds){
+  const budget = Number($("hitlBudget")?.value || 0);
+  const note = $("hitlNote")?.value || "";
+  const payload = { approve, note, force_bad_copy: $("forceBad").checked };
+  if (isAds) payload.spend_cny = budget;
+  else if (approve) {
+    payload.budget_cap_test_cny = budget;
+    // 把当前单位经济测算写入模式补丁，供后续节点使用
+    try {
+      const ueInputs = collectUeInputs();
+      const calc = await api("/api/decision/unit-economics/calc", {
+        method: "POST",
+        body: JSON.stringify(ueInputs),
+      });
+      payload.business_model_patch = {
+        budget_cap_test_cny: budget,
+        unit_economics_live: calc.result,
+        unit_economics_inputs: ueInputs,
+        decision_brief: window.__hitlBrief || undefined,
+      };
+    } catch (_) {
+      payload.business_model_patch = { budget_cap_test_cny: budget };
+    }
+  }
+  const pending = await api(`/api/hitl/${id}`);
+  if (pending?.trace_id){ currentTrace=pending.trace_id; listen(currentTrace); }
+  await api(`/api/hitl/${id}/decide`,{method:"POST",body:JSON.stringify(payload)});
+  closeHitlModal();
+  await tickGraph(); refreshHitl(); refreshTraces();
+}
+
+async function decideHitl(id, approve){ openHitlDashboard(id); }
+
+async function refreshTraces(){
+  const data = await api("/api/traces");
+  $("traceBox").innerHTML = (data.items||[]).slice(0,8).map(t=>`
+    <div class="list-item" onclick='loadTrace("${t.trace_id}")'>
+      <div>${t.topic||t.theme_pack}</div>
+      <div class="mono">${t.status}</div>
+    </div>`).join("") || `<div class="empty">暂无</div>`;
+}
+
+async function loadTrace(id){
+  currentTrace=id;
+  openAux("canvas");
+  graph = await api(`/api/runs/${id}/graph`);
+  selectedNode=null; draftInputs=[];
+  $("editor").style.display="none";
+  $("nodeMeta").textContent="选择工作流中的节点";
+  renderGraph(); renderIO();
+  refreshRunStatusFromGraph();
+  if ($("runControlHint")) {
+    $("runControlHint").innerHTML = `已加载运行记录 · <span class="mono">${escapeHtml(String(id).slice(0,18))}…</span> · 可在工作流中查看节点结果`;
+  }
+}
+
+refreshMeta(); try{ const s=localStorage.getItem('lf_stage')||'hot'; goStage(s);}catch(_){goStage('hot');}
+setInterval(()=>{ if(currentTrace) tickGraph(); }, 2500);
+
+/** 左右栏拖拽调宽，宽度写入 CSS 变量并本地记忆 */
+function initPanelResizers(){
+  const root = document.documentElement;
+  const savedL = localStorage.getItem("lf_left_w");
+  const savedR = localStorage.getItem("lf_right_w");
+  if (savedL) root.style.setProperty("--left-w", savedL + "px");
+  if (savedR) root.style.setProperty("--right-w", savedR + "px");
+
+  function bind(el, side){
+    if (!el) return;
+    el.addEventListener("pointerdown", (ev)=>{
+      ev.preventDefault();
+      el.classList.add("dragging");
+      el.setPointerCapture(ev.pointerId);
+      const startX = ev.clientX;
+      const start = parseFloat(getComputedStyle(root).getPropertyValue(side === "left" ? "--left-w" : "--right-w")) || (side==="left"?300:420);
+      const onMove = (e)=>{
+        const dx = e.clientX - startX;
+        let next = side === "left" ? start + dx : start - dx;
+        next = Math.max(220, Math.min(560, next));
+        root.style.setProperty(side === "left" ? "--left-w" : "--right-w", next + "px");
+      };
+      const onUp = (e)=>{
+        el.classList.remove("dragging");
+        el.releasePointerCapture(e.pointerId);
+        el.removeEventListener("pointermove", onMove);
+        el.removeEventListener("pointerup", onUp);
+        const val = parseFloat(getComputedStyle(root).getPropertyValue(side === "left" ? "--left-w" : "--right-w"));
+        localStorage.setItem(side === "left" ? "lf_left_w" : "lf_right_w", String(Math.round(val)));
+      };
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerup", onUp);
+    });
+  }
+  bind($("resizerLeft"), "left");
+  bind($("resizerRight"), "right");
+}
+initPanelResizers();
+</script>
+</body>
+</html>

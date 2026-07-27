@@ -1,0 +1,29 @@
+# 精简商机确认模板：聚焦商机→模式→红队→HITL，无投放闭环
+# 创建时间: 2026-07-24
+
+id: opportunity-validate
+name: 商机验证（到 HITL）
+description: 仅跑到商业模式确认，适合先筛商机再决定是否开发
+
+nodes:
+  - {id: start, label: 主题输入, kind: input, x: 80, y: 220}
+  - {id: opportunity, label: 商机, kind: agent, x: 280, y: 220, agent_key: opportunity}
+  - {id: business_model, label: 模式, kind: agent, x: 500, y: 220, agent_key: business_model}
+  - {id: redteam_model, label: 红队·模式, kind: redteam, x: 720, y: 120, agent_key: redteam}
+  - {id: hitl_model, label: HITL·确认, kind: hitl, x: 920, y: 220}
+
+edges:
+  - [start, opportunity]
+  - [opportunity, business_model]
+  - [business_model, redteam_model]
+  - [redteam_model, hitl_model]
+
+node_bindings:
+  opportunity:
+    agent_key: opportunity
+    prompt: |
+      本模板目标是验证商机是否值得继续：优先 A/B/C 综合分与最小验证步骤。
+  business_model:
+    agent_key: business_model
+    prompt: |
+      输出可测试的最小商业模式与测试预算，便于人工确认。

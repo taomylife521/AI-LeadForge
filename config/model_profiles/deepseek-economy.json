@@ -1,0 +1,12 @@
+{
+  "id": "deepseek-economy",
+  "label": "DeepSeek 性价比",
+  "description": "全档位 DeepSeek Chat，适合长跑飞轮控成本。",
+  "provider": "deepseek",
+  "required_env": ["DEEPSEEK_API_KEY"],
+  "routes": {
+    "tier_s": "deepseek/deepseek-chat",
+    "tier_m": "deepseek/deepseek-chat",
+    "tier_xs": "deepseek/deepseek-chat"
+  }
+}

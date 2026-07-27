@@ -1,0 +1,12 @@
+id: local-service-leadgen
+name: 本地到店获客落地页
+vertical: local_services
+default_topic: 牙科/美业/教培到店预约获客
+description: |
+  LeadForge 默认 Theme Pack。主题可插拔：后续新增 theme-packs/<id> 即可切换，无需改 Agent 协议。
+kpi:
+  - preview_url_ready
+  - redteam_pass_rate
+  - hitl_cycle_time
+  - flywheel_lessons_count
+skills_extra: []

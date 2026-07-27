@@ -1,0 +1,12 @@
+{
+  "id": "ollama-local",
+  "label": "Ollama 本地（零云费）",
+  "description": "需本机已启动 Ollama 并拉取 llama3.2；适合联调与离线演示。",
+  "provider": "ollama",
+  "required_env": [],
+  "routes": {
+    "tier_s": "ollama/llama3.2",
+    "tier_m": "ollama/llama3.2",
+    "tier_xs": "ollama/llama3.2"
+  }
+}

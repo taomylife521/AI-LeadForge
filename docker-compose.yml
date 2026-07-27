@@ -1,0 +1,152 @@
+# LeadForge — 本机一键商业闭环多智能体栈
+# 创建时间: 2026-07-23
+# 说明: TrendRadar 以独立 sidecar 运行（GPL-3.0），不并入 LeadForge 源码；仅 MCP/HTTP 调用。
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: leadforge-api
+    env_file: .env
+    environment:
+      - LEADFORGE_DATA_DIR=/data
+      - LITELLM_BASE_URL=http://litellm:4000
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-leadforge-litellm}
+      - QDRANT_URL=http://qdrant:6333
+      - MODEL_PROFILE=${MODEL_PROFILE:-openai-balanced}
+      - REDIS_URL=redis://redis:6379/0
+      - TRENDRADAR_MCP_URL=${TRENDRADAR_MCP_URL:-http://trendradar-mcp:3333/mcp}
+      - TRENDRADAR_WEB_URL=${TRENDRADAR_WEB_URL:-http://trendradar:8080}
+      - PAPERCLIP_BASE_URL=${PAPERCLIP_BASE_URL:-http://paperclip:3100}
+      - PAPERCLIP_COMPANY_ID=${PAPERCLIP_COMPANY_ID:-}
+      - PAPERCLIP_PROJECT_ID=${PAPERCLIP_PROJECT_ID:-}
+      - PAPERCLIP_GOAL_ID=${PAPERCLIP_GOAL_ID:-}
+      - PAPERCLIP_AGENT_ID=${PAPERCLIP_AGENT_ID:-}
+      - PAPERCLIP_API_KEY=${PAPERCLIP_API_KEY:-}
+    volumes:
+      - ./data:/data
+      - ./config:/app/config:ro
+      - ./schemas:/app/schemas:ro
+      - ./theme-packs:/app/theme-packs:ro
+      - ./rules:/app/rules:ro
+      - ./skills:/app/skills
+      - ./scaffolds:/app/scaffolds:ro
+    ports:
+      - "${LEADFORGE_WEB_PORT:-8080}:8080"
+    depends_on:
+      - litellm
+      - qdrant
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # TrendRadar 爬虫（GPL-3.0 sidecar，配置见 integrations/trendradar/）
+  trendradar:
+    image: wantcat/trendradar:latest
+    container_name: leadforge-trendradar
+    restart: unless-stopped
+    ports:
+      - "${TRENDRADAR_WEB_PORT:-8081}:${WEBSERVER_PORT:-8080}"
+    volumes:
+      - ./integrations/trendradar/config:/app/config:ro
+      - ./integrations/trendradar/output:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+      - WEBSERVER_PORT=${WEBSERVER_PORT:-8080}
+      - RUN_MODE=${TRENDRADAR_RUN_MODE:-cron}
+      - CRON_SCHEDULE=${TRENDRADAR_CRON:-*/30 * * * *}
+      - IMMEDIATE_RUN=${TRENDRADAR_IMMEDIATE_RUN:-true}
+
+  # TrendRadar MCP HTTP（默认 :3333）
+  trendradar-mcp:
+    image: wantcat/trendradar-mcp:latest
+    container_name: leadforge-trendradar-mcp
+    restart: unless-stopped
+    ports:
+      - "${TRENDRADAR_MCP_PORT:-3333}:3333"
+    volumes:
+      - ./integrations/trendradar/config:/app/config:ro
+      - ./integrations/trendradar/output:/app/output
+    environment:
+      - TZ=Asia/Shanghai
+      - MCP_PORT=3333
+    depends_on:
+      - trendradar
+
+  # Paperclip 控制面（MIT；首次访问 http://localhost:3100 完成 onboard）
+  paperclip:
+    image: ghcr.io/paperclipai/paperclip:latest
+    container_name: leadforge-paperclip
+    restart: unless-stopped
+    ports:
+      - "${PAPERCLIP_PORT:-3100}:3100"
+    environment:
+      - HOST=0.0.0.0
+      - PAPERCLIP_HOME=/paperclip
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-leadforge-dev-change-me-paperclip-secret-32}
+      - PAPERCLIP_PUBLIC_URL=${PAPERCLIP_PUBLIC_URL:-http://127.0.0.1:3100}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./data/paperclip:/paperclip
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: leadforge-litellm
+    env_file: .env
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-leadforge-litellm}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+    volumes:
+      - ./config/litellm_config.yaml:/app/config.yaml:ro
+      - ./config/model_profiles:/app/model_profiles:ro
+      - ./config/active_profile.json:/app/active_profile.json:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    container_name: leadforge-qdrant
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: leadforge-redis
+    volumes:
+      - ./data/redis:/data
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: leadforge-n8n
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:${N8N_PORT:-5678}/
+      - GENERIC_TIMEZONE=Asia/Shanghai
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: leadforge-net

@@ -1,0 +1,12 @@
+{
+  "profile_id": "agnes-free",
+  "updated_at": "2026-07-25T07:50:15.765286+00:00",
+  "routes": {
+    "tier_s": "agnes-2.0-flash",
+    "tier_m": "agnes-2.0-flash",
+    "tier_xs": "agnes-2.0-flash"
+  },
+  "provider": "agnes",
+  "model_override": null,
+  "group": null
+}

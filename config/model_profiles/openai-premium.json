@@ -1,0 +1,12 @@
+{
+  "id": "openai-premium",
+  "label": "OpenAI 全链路旗舰",
+  "description": "全链路 GPT-4o，质量最高、成本最高。",
+  "provider": "openai",
+  "required_env": ["OPENAI_API_KEY"],
+  "routes": {
+    "tier_s": "openai/gpt-4o",
+    "tier_m": "openai/gpt-4o",
+    "tier_xs": "openai/gpt-4o-mini"
+  }
+}

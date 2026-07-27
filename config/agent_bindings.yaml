@@ -1,0 +1,139 @@
+# 每个 Agent 的动态绑定：Skill / Rule / MCP / Model
+# 运行时可被控制台覆盖，覆盖写入 data/agent_bindings.json
+# 创建时间: 2026-07-23
+
+agents:
+  opportunity:
+    label: 商机 Agent（中国本土真实研究）
+    model:
+      mode: route
+      route: tier_s
+      profile_id: null
+    skills:
+      - customer-research
+      - competitor-profiling
+      - seo-audit
+    rules:
+      - global/advertising-law-cn.md
+    mcp:
+      - name: fetch
+        enabled: true
+    tools:
+      - china_web_search
+      - web_fetch
+      - opportunity_research
+      - pitchhub_crawl
+
+  harness:
+    label: Harness 长跑 Agent（计划→分片执行→校验）
+    model:
+      mode: route
+      route: tier_m
+      profile_id: null
+    skills: []
+    rules:
+      - global/advertising-law-cn.md
+    mcp:
+      - name: fetch
+        enabled: true
+    tools:
+      - pitchhub_crawl
+    harness:
+      pattern: plan-worker-judge
+      note: 对齐 Cursor Harness：长任务断点续跑、分片执行、结果校验；不绑定单一模型。
+
+  business_model:
+    label: 模式 Agent
+    model:
+      mode: route
+      route: tier_s
+      profile_id: null
+    skills:
+      - pricing-strategy
+      - lead-magnets
+    rules:
+      - global/advertising-law-cn.md
+    mcp: []
+
+  redteam:
+    label: 红队 Agent
+    model:
+      mode: route
+      route: tier_s
+      profile_id: null
+    skills:
+      - competitor-profiling
+      - copywriting
+    rules:
+      - global/advertising-law-cn.md
+    mcp: []
+
+  dev:
+    label: 开发 Agent
+    model:
+      mode: route
+      route: tier_m
+      profile_id: null
+    skills:
+      - frontend-design
+      - vercel-react-best-practices
+      - web-design-guidelines
+    rules: []
+    mcp: []
+
+  deploy:
+    label: 部署 Agent
+    model:
+      mode: route
+      route: tier_xs
+      profile_id: null
+    skills:
+      - deploy-to-vercel
+    rules: []
+    mcp: []
+
+  marketing:
+    label: 营销 Agent
+    model:
+      mode: route
+      route: tier_m
+      profile_id: null
+    skills:
+      - copywriting
+      - ad-creative
+      - page-cro
+      - paid-ads
+    rules:
+      - global/advertising-law-cn.md
+    mcp: []
+
+  flywheel:
+    label: 飞轮 Agent
+    model:
+      mode: route
+      route: tier_xs
+      profile_id: null
+    skills: []
+    rules: []
+    mcp: []
+
+# 可选 MCP 服务器目录（按 name 引用到 agents.*.mcp）
+mcp_catalog:
+  - name: filesystem
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    description: 本地文件读写
+  - name: fetch
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-fetch"]
+    description: HTTP 抓取
+  - name: browser
+    transport: stdio
+    command: npx
+    args: ["-y", "@anthropic/mcp-server-puppeteer"]
+    description: 浏览器自动化（需本机支持）
+
+# 可选 Skill 目录（来自 allowlist + 自定义）
+skill_catalog_notes: 同步自 skills.allowlist.yaml，也可在 UI 直接填 skill id

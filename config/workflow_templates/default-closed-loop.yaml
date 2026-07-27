@@ -1,0 +1,41 @@
+# LeadForge 默认商业闭环工作流模板
+# 每个节点可通过 node_bindings 覆盖 model / skills / prompt；运行时仍可在画布上改。
+# 创建时间: 2026-07-24
+
+id: default-closed-loop
+name: 默认商业闭环
+description: 商机定位 → 模式 → 红队 → HITL确认 → 开发投放飞轮
+
+nodes:
+  - {id: start, label: 主题输入, kind: input, x: 40, y: 220}
+  - {id: opportunity, label: 商机, kind: agent, x: 220, y: 220, agent_key: opportunity}
+  - {id: business_model, label: 模式, kind: agent, x: 400, y: 220, agent_key: business_model}
+  - {id: redteam_model, label: 红队·模式, kind: redteam, x: 580, y: 120, agent_key: redteam}
+  - {id: hitl_model, label: HITL·模式, kind: hitl, x: 760, y: 220}
+  - {id: dev, label: 开发, kind: agent, x: 940, y: 220, agent_key: dev}
+  - {id: deploy, label: 部署, kind: agent, x: 1120, y: 220, agent_key: deploy}
+  - {id: marketing, label: 营销, kind: agent, x: 1300, y: 220, agent_key: marketing}
+  - {id: redteam_marketing, label: 红队·营销, kind: redteam, x: 1480, y: 120, agent_key: redteam}
+  - {id: hitl_ads, label: HITL·投放, kind: hitl, x: 1660, y: 220}
+  - {id: flywheel, label: 飞轮, kind: agent, x: 1840, y: 220, agent_key: flywheel}
+
+edges:
+  - [start, opportunity]
+  - [opportunity, business_model]
+  - [business_model, redteam_model]
+  - [redteam_model, hitl_model]
+  - [hitl_model, dev]
+  - [dev, deploy]
+  - [deploy, marketing]
+  - [marketing, redteam_marketing]
+  - [redteam_marketing, hitl_ads]
+  - [hitl_ads, flywheel]
+
+# 可选：按节点覆盖（空对象=使用全局 Agent 绑定）
+node_bindings:
+  opportunity:
+    agent_key: opportunity
+    prompt: ""
+  business_model:
+    agent_key: business_model
+    prompt: ""

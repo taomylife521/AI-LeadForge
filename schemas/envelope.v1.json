@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://leadforge.local/schemas/envelope.v1.json",
+  "title": "LeadForge Data Envelope",
+  "type": "object",
+  "required": ["envelope_version", "trace_id", "span_id", "agent", "status", "metadata", "payload"],
+  "properties": {
+    "envelope_version": { "type": "string" },
+    "trace_id": { "type": "string" },
+    "span_id": { "type": "string" },
+    "parent_span_id": { "type": ["string", "null"] },
+    "agent": {
+      "type": "string",
+      "enum": ["orchestrator", "opportunity", "business_model", "dev", "deploy", "marketing", "redteam", "flywheel"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "success", "failed", "needs_hitl", "rejected_by_redteam", "approved", "rejected"]
+    },
+    "metadata": { "type": "object" },
+    "payload": { "type": "object" },
+    "error": { "type": ["object", "null"] }
+  }
+}

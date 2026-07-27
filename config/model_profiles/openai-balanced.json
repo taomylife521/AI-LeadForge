@@ -1,0 +1,12 @@
+{
+  "id": "openai-balanced",
+  "label": "OpenAI 均衡（推荐）",
+  "description": "商机/模式/红队用 GPT-4o；营销与胶水用 4o-mini，成本约降 70%。",
+  "provider": "openai",
+  "required_env": ["OPENAI_API_KEY"],
+  "routes": {
+    "tier_s": "openai/gpt-4o",
+    "tier_m": "openai/gpt-4o-mini",
+    "tier_xs": "openai/gpt-4o-mini"
+  }
+}

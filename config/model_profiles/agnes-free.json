@@ -1,0 +1,12 @@
+{
+  "id": "agnes-free",
+  "label": "Agnes 免费 (2.0 Flash)",
+  "description": "Sapiens Agnes-2.0-Flash 免费文本模型；OpenAI 兼容接口，推荐作为默认全链路模型。",
+  "provider": "agnes",
+  "required_env": ["AGNES_API_KEY"],
+  "routes": {
+    "tier_s": "agnes-2.0-flash",
+    "tier_m": "agnes-2.0-flash",
+    "tier_xs": "agnes-2.0-flash"
+  }
+}

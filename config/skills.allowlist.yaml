@@ -1,0 +1,97 @@
+# Skills.sh 白名单 — LeadForge 按 Agent 自动融入
+# 安全策略: Gen Pass + Socket Pass 必选; Snyk Pass=A 自动; Snyk Warn=B 隔离
+# 来源: https://www.skills.sh/  更新: 2026-07-23
+
+source: skills.sh
+policy:
+  require_gen_pass: true
+  require_socket_pass: true
+  snyk_pass: auto
+  snyk_warn: quarantine
+  install_root: skills/vendor
+
+meta_skills:
+  - id: find-skills
+    repo: vercel-labs/skills
+    skill: find-skills
+    tier: B
+  - id: skill-security
+    repo: superagent-ai/skills
+    skill: skill-security
+    tier: B
+  - id: brainstorming
+    repo: obra/superpowers
+    skill: brainstorming
+    tier: A
+  - id: writing-skills
+    repo: obra/superpowers
+    skill: writing-skills
+    tier: A
+  - id: skill-creator
+    repo: anthropics/skills
+    skill: skill-creator
+    tier: A
+  - id: mcp-builder
+    repo: anthropics/skills
+    skill: mcp-builder
+    tier: B
+
+agents:
+  opportunity:
+    - id: customer-research
+      repo: coreyhaines31/marketingskills
+      skill: customer-research
+      tier: B
+    - id: competitor-profiling
+      repo: coreyhaines31/marketingskills
+      skill: competitor-profiling
+      tier: B
+    - id: seo-audit
+      repo: coreyhaines31/marketingskills
+      skill: seo-audit
+      tier: B
+  business_model:
+    - id: pricing-strategy
+      repo: coreyhaines31/marketingskills
+      skill: pricing-strategy
+      tier: A
+    - id: lead-magnets
+      repo: coreyhaines31/marketingskills
+      skill: lead-magnets
+      tier: B
+  dev:
+    - id: frontend-design
+      repo: anthropics/skills
+      skill: frontend-design
+      tier: A
+    - id: vercel-react-best-practices
+      repo: vercel-labs/agent-skills
+      skill: vercel-react-best-practices
+      tier: A
+    - id: web-design-guidelines
+      repo: vercel-labs/agent-skills
+      skill: web-design-guidelines
+      tier: B
+  deploy:
+    - id: deploy-to-vercel
+      repo: vercel-labs/agent-skills
+      skill: deploy-to-vercel
+      tier: A
+  marketing:
+    - id: copywriting
+      repo: coreyhaines31/marketingskills
+      skill: copywriting
+      tier: A
+    - id: ad-creative
+      repo: coreyhaines31/marketingskills
+      skill: ad-creative
+      tier: A
+    - id: page-cro
+      repo: coreyhaines31/marketingskills
+      skill: page-cro
+      tier: A
+    - id: paid-ads
+      repo: coreyhaines31/marketingskills
+      skill: paid-ads
+      tier: B
+  redteam: []
