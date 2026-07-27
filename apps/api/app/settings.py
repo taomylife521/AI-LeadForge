@@ -46,12 +46,12 @@ class Settings(BaseSettings):
 
     leadforge_data_dir: str = "/data"
     litellm_base_url: str = "http://localhost:4000"
-    litellm_master_key: str = "sk-leadforge-litellm"
+    litellm_master_key: str = ""
     qdrant_url: str = "http://localhost:6333"
     redis_url: str = "redis://localhost:6379/0"
     model_profile: str = "agnes-free"
     default_theme_pack: str = "local-service-leadgen"
-    leadforge_api_token: str = "dev-change-me"
+    leadforge_api_token: str = ""
     mock_llm: bool = False
     agnes_api_key: str = ""
     agnes_token: str = ""

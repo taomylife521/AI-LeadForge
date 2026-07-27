@@ -12,7 +12,7 @@ services:
     environment:
       - LEADFORGE_DATA_DIR=/data
       - LITELLM_BASE_URL=http://litellm:4000
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-leadforge-litellm}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - QDRANT_URL=http://qdrant:6333
       - MODEL_PROFILE=${MODEL_PROFILE:-openai-balanced}
       - REDIS_URL=redis://redis:6379/0
@@ -88,7 +88,7 @@ services:
     environment:
       - HOST=0.0.0.0
       - PAPERCLIP_HOME=/paperclip
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-leadforge-dev-change-me-paperclip-secret-32}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - PAPERCLIP_PUBLIC_URL=${PAPERCLIP_PUBLIC_URL:-http://127.0.0.1:3100}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
@@ -100,7 +100,7 @@ services:
     container_name: leadforge-litellm
     env_file: .env
     environment:
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-leadforge-litellm}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - QWEN_API_KEY=${QWEN_API_KEY:-}
