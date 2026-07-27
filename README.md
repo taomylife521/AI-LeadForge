@@ -1,111 +1,154 @@
 # LeadForge
 
-全自动商业闭环多智能体工作台：**看热点 → 定商机 → 选项目 → 去落地**。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-taomylife521%2FAI--LeadForge-blue)](https://github.com/taomylife521/AI-LeadForge)
 
-默认 Theme Pack：`local-service-leadgen`（本地到店获客落地页）。主题可插拔，新增 `theme-packs/<id>` 即可。
+**发现商机 · 匹配项目 · 落地执行**
 
-> 文档中心：[docs/README.md](docs/README.md)  
-> 含：需求、PRD、架构、详细设计、原型说明。
+LeadForge 是面向独立开发者与一人公司（OPC）的开源商业智能体工作台：从全网热点与创投信号中提炼**可验证商机**，匹配可落地开源/创投项目，并用工作流 + HITL 门禁推进到任务拆解。
 
-## 功能速览
+> 作者 / 版权：**taomylife521 (Soul Coders)** · MIT 开源（需保留署名与许可证声明）  
+> 仓库：https://github.com/taomylife521/AI-LeadForge
 
-| 阶段 | 能力 |
+---
+
+## 界面预览
+
+### 01 看热点
+
+多维通道：平台热搜 · SeekMoney 商机线索 · 创投 · 行业痛点 · AI 重构。
+
+![看热点](docs/assets/01-hotspots.png)
+
+### 02 定商机
+
+确认主题与行业，启动验证工作流；底部「工作流」实时看节点进度。
+
+![定商机](docs/assets/02-opportunity.png)
+
+### 03 选项目
+
+只推荐经分析后可落地的开源 / 创投项目，并生成两周落地方案。
+
+![选项目](docs/assets/03-projects.png)
+
+### 04 去落地
+
+本地落地任务增删查改，子任务状态跟踪。
+
+![去落地](docs/assets/04-landing.png)
+
+---
+
+## 项目介绍
+
+### 要解决什么问题
+
+| 痛点 | LeadForge 做法 |
 |:---|:---|
-| 看热点 | 平台热搜、SeekMoney 商机线索、创投、行业痛点、AI 重构；定时同步 |
-| 定商机 | 行业主题推荐、验证工作流、HITL、实时进度 |
-| 选项目 | 可落地开源/创投过滤、两周落地方案 |
-| 去落地 | 本地任务增删查改、子任务状态、从商机生成 |
+| 热搜像吃瓜，不像商机 | 对齐 SeekMoney：表面痛点 → 根因 → 付费方 → 两周 MVP |
+| 验证链路散落各处 | 一条工作流：商机 → 模式 → 红队 → HITL → 开发 → 营销 → 飞轮 |
+| 项目选型凭感觉 | 可落地过滤 + 落地方案 Markdown |
+| 方案落地后无人跟 | 本地任务中心 CRUD |
 
-方法对齐：[SeekMoney-ai](https://github.com/liangdabiao/SeekMoney-ai) 痛点框架 + 一人公司（OPC）两周验证约束。
+### 核心能力
 
-## 一键启停
+1. **看热点**：newsnow / 36氪 / 创业邦 / GitHub / 独立开发者线索；定时增量同步  
+2. **定商机**：主题推荐、SeekMoney 结构线索、验证工作流与审批  
+3. **选项目**：开源与创投可落地匹配、OPC 两周方案  
+4. **去落地**：任务 / 子任务增删查改  
 
-### 方式 A：Docker 全栈（含 LiteLLM / Qdrant 等）
+默认垂直场景包：`local-service-leadgen`（本地到店获客）。新增 `theme-packs/<id>` 即可扩展。
 
-| 操作 | 命令 |
-|:---|:---|
-| 启动 | 双击 `start.bat` |
-| 停止 | 双击 `stop.bat` |
-| 重建 | `powershell -File scripts\start.ps1 -Build` |
+### 技术栈（摘要）
 
-需已安装并启动 **Docker Desktop**。
+- **控制台**：FastAPI 静态 SPA（`apps/api/static/index.html`）  
+- **编排**：自研工作流图 + SSE；Agent 管线（商机 / 模式 / 红队 / 开发 / 营销 / 飞轮）  
+- **模型**：多档位切换（Agnes / OpenAI / 通义 / DeepSeek 等）  
+- **可选 sidecar**：TrendRadar（GPL，进程隔离）、Paperclip（MIT）  
 
-### 方式 B：本地控制台（无需 Docker）
+详细设计见 [`docs/`](docs/README.md)。
 
-| 操作 | 命令 |
-|:---|:---|
-| 启动 | 双击 `start-local.bat` |
-| 停止 | `powershell -File scripts\stop-local.ps1` |
+---
 
-无云厂商 API Key 时可将 `MOCK_LLM=true` 做演示；正式推荐请保持 `MOCK_LLM=false`。
+## 快速开始
 
-启动后打开：**http://127.0.0.1:8080**
-
-## 快速配置
+### 本地（无需 Docker）
 
 ```powershell
 copy .env.example .env
-# 编辑 .env：至少配置 AGNES_API_KEY 或其它厂商 Key
-# 可选：GITHUB_TOKEN（提高 GitHub Search 限额）
+# 编辑 .env：填写 AGNES_API_KEY 等；勿把真实密钥提交到 Git
+双击 start-local.bat
 ```
 
-控制台「系统设置」可可视化粘贴密钥并切换模型档位。
+打开 http://127.0.0.1:8080
 
-## 大模型
+### Docker 全栈
 
-- 默认档位：`MODEL_PROFILE=agnes-free`（Agnes API Hub）
-- 亦可切换 OpenAI / 通义 / DeepSeek / Anthropic / Ollama / 免费模型目录
-- 自定义：填写 API Base + Key + model（OpenAI 兼容）
-
-## 验证工作流（默认）
-
-```
-主题 → 商机 → 模式 → 红队 → HITL → 开发 → 部署 → 营销 → 红队 → HITL → 飞轮
+```powershell
+copy .env.example .env
+双击 start.bat
 ```
 
-点「开始验证」后，底部 **工作流** 抽屉会自动打开并显示节点进度；历史在 **运行记录**，待确认在 **审批中心**。
+需已安装 Docker Desktop。
 
-## 仓库结构
-
-```
-apps/api/          FastAPI + 控制台
-config/            模型档位、工作流模板、skills
-theme-packs/       垂直场景包
-rules/             合规规则
-schemas/           数据信封 Schema
-docs/              需求/PRD/架构/详细设计/原型
-integrations/      TrendRadar 等 sidecar 配置（GPL 组件不并入主逻辑）
-scripts/           启停脚本
-```
+---
 
 ## 文档
 
-| 文档 | 路径 |
+| 文档 | 说明 |
 |:---|:---|
-| 需求 | [docs/01-requirements.md](docs/01-requirements.md) |
-| PRD | [docs/02-prd.md](docs/02-prd.md) |
-| 架构 | [docs/03-architecture.md](docs/03-architecture.md) |
-| 详细设计 | [docs/04-detailed-design.md](docs/04-detailed-design.md) |
-| 原型 | [docs/05-prototype.md](docs/05-prototype.md) |
-| Sidecar | [docs/sidecars.md](docs/sidecars.md) |
+| [需求文档](docs/01-requirements.md) | 功能 / 非功能需求 |
+| [PRD](docs/02-prd.md) | 产品定位与用户故事 |
+| [架构设计](docs/03-architecture.md) | 分层与部署 |
+| [详细设计](docs/04-detailed-design.md) | API / 数据模型 |
+| [原型说明](docs/05-prototype.md) | 四步流水线交互 |
+| [Sidecar](docs/sidecars.md) | TrendRadar / Paperclip |
 
-## 本地开发（可选）
+---
 
-```powershell
-cd apps\api
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-$env:LEADFORGE_DATA_DIR="..\..\data"
-$env:MOCK_LLM="false"
-uvicorn app.main:app --host 127.0.0.1 --port 8080
+## 参考与致谢
+
+LeadForge **不 fork 整仓**，而是吸收下列开源项目的方法论与能力边界，并在代码/文档中署名引用：
+
+| 项目 | 链接 | 在本项目中的角色 |
+|:---|:---|:---|
+| **SeekMoney-ai** | [liangdabiao/SeekMoney-ai](https://github.com/liangdabiao/SeekMoney-ai) | 痛点发现框架（表面痛点→根因→场景→优先级→MVP）；商机线索通道对齐 |
+| **一人企业方法论** | [easychen/opc-methodology](https://github.com/easychen/opc-methodology) | OPC 约束：两周可验证、不硬碰红海、基础设施四池 |
+| **TrendRadar** | [sansan0/TrendRadar](https://github.com/sansan0/TrendRadar) | 可选热搜增强；**GPL-3.0**，仅 sidecar 调用，不并入主仓源码 |
+| **Paperclip** | 控制面 sidecar（见 `docs/sidecars.md`） | 可选外部任务协同；本地任务中心为默认 |
+| **chinese-independent-developer** | [1c7/chinese-independent-developer](https://github.com/1c7/chinese-independent-developer) | 中国独立开发者项目线索 |
+| **free-llm-api-resources** | [cheahjs/free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources) | 免费模型目录参考 |
+| newsnow / 36氪 PitchHub / 创业邦 | 公开热点与创投源 | 数据采集（遵守各站条款与频率） |
+
+方法论写入位置：`apps/api/app/tools/methodology_playbooks.py`、`seekmoney_clues.py`。
+
+若你基于 LeadForge 二次开发，请：
+
+1. 保留本仓库 **MIT** 版权与许可证声明（见 [`LICENSE`](./LICENSE)）  
+2. 在你的 README / About 中署名：**LeadForge · taomylife521**  
+3. 继续尊重上游参考项目的各自许可证（尤其是 GPL sidecar）
+
+---
+
+## 开源协议
+
+本项目采用 [MIT License](./LICENSE)。
+
 ```
+Copyright (c) 2026 taomylife521 (Soul Coders)
+```
+
+使用、修改、分发时须保留上述版权声明与许可全文；建议在衍生作品中注明来源仓库：  
+https://github.com/taomylife521/AI-LeadForge
+
+---
 
 ## 安全提示
 
-- **勿提交** `.env`、`data/`、含 Token 的本地文件（已在 `.gitignore`）。
-- GitHub Token 仅需 `public_repo` 量级权限即可提升 Search 限额。
+- 真实 API Key 只放在本地 `.env` / 控制台配置（已 `.gitignore`）  
+- 仓库内 `.env.example` 仅含空占位，便于开源协作  
 
-## License
+## 贡献
 
-主项目以仓库内声明为准。TrendRadar 等第三方以各自许可证通过 **sidecar** 方式集成，详见 `docs/sidecars.md`。
+Issue / PR 欢迎。提交前请确认未包含密钥与 `data/` 运行时数据。
